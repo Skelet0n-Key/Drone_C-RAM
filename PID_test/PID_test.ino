@@ -3,13 +3,23 @@ int x = 0;
 int y = 0;
 int centerX = 320;
 int centerY = 240;
-int xFreq = 0;
-int yFreq = 0;
+int xFreq = 122;
+int yFreq = 122;
 
 int xPulsePin = 9;   // Timer1 OC1A
 int xDirPin = 8;
 int yPulsePin = 11;  // Timer2 OC2A
 int yDirPin = 10;
+
+// Function prototypes
+void stopTimer1();
+void startTimer1();
+void stopTimer2();
+void startTimer2();
+void setxFreq(int xFreq);
+void setyFreq(int yFreq);
+int frequency_calculator(int coord, int curr_freq, int center);
+void set_dir(char axis, int center, int coord);
 
 void setup() {
   // Timer1 - prescaler 8
@@ -28,17 +38,10 @@ void setup() {
   pinMode(yDirPin, OUTPUT);   // High is pitch up
 
   Serial.begin(115200);
-}
 
-// Function prototypes
-void stopTimer1();
-void startTimer1();
-void stopTimer2();
-void startTimer2();
-void setxFreq(int xFreq);
-void setyFreq(int yFreq);
-int frequency_calculator(int coord, int curr_freq, int center);
-void set_dir(char axis, int center, int coord);
+  stopTimer1();
+  stopTimer2();
+}
 
 void loop() {
   while (Serial.available() > 0) {  // receiving coords
@@ -107,16 +110,16 @@ void setyFreq(int yFreq) {
 int frequency_calculator(int coord, int curr_freq, int center) {
   // returns a freq as a function of how far away the target is and how fast it's approaching it
   // a coord of -300 and +300 should return the same freq, we don't care abt dir
-  if (curr_freq > 10*abs(coord-center)) {  // if approaching target too fast, slow down.
-    if (10*abs(coord-center) < 122) {
+  if (curr_freq > 2*abs(coord-center)) {  // if approaching target too fast, slow down.
+    if (2*abs(coord-center) < 122) {
       return 122;
     }
-    return 10*abs(coord-center);
+    return 2*abs(coord-center);
   } else {  // if approaching target and still accelerating, continue to accelerate
-    if (curr_freq*2 > 2000) {
-      return 2000;
+    if ((int)((double)curr_freq*1.05)) {
+      return 500;
     }
-    return curr_freq*2;
+    return (int)((double)curr_freq*1.05);
   }
   // all hardcoded values subject to change. Just an example for now.
 }
@@ -125,20 +128,20 @@ void set_dir(char axis, int center, int coord) {
   // x and y are on separate timers, we need to be able to distinguish here.
   // not possible to put this logic in the frequency calculator
   if (axis == 'x') {
-    if (coord - center > 10) {
+    if (coord - center > 20) {
       startTimer1();  // outside of deadzone, connect timer to pin
       digitalWrite(xDirPin, LOW);  // moving clockwise
-    } else if (coord - center < -10) {
+    } else if (coord - center < -20) {
       startTimer1();  // outside of deadzone
       digitalWrite(xDirPin, HIGH);  // moving counter-clockwise
     } else {
       stopTimer1();  // inside of deadzone, disconnect timer
     }
   } else if (axis == 'y') {
-    if (coord - center > 10) {
+    if (coord - center > 20) {
       startTimer2();  // outside of deadzone, connect timer to pin
       digitalWrite(yDirPin, LOW);  // moving clockwise
-    } else if (coord - center < -10) {
+    } else if (coord - center < -20) {
       startTimer2();  // outside of deadzone
       digitalWrite(yDirPin, HIGH);  // moving counter-clockwise
     } else {
