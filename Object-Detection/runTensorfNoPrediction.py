@@ -1,7 +1,6 @@
 import argparse
 import sys
 from functools import lru_cache
-from turtle import speed
 import serial
 import time
 
@@ -13,7 +12,7 @@ from picamera2.devices import IMX500
 from picamera2.devices.imx500 import (NetworkIntrinsics,
                                       postprocess_nanodet_detection)
 
-lastPosition = [(0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0)]
+last_detections = []
 
 
 
@@ -53,8 +52,7 @@ def parse_detections(metadata: dict):
             boxes = boxes[:, [1, 0, 3, 2]]
         boxes = np.array_split(boxes, 4, axis=1)
         boxes = zip(*boxes)
-    
-    
+
     '''ADDED filter for desired class'''
     ALLOWED_CLASSES = {"person"}
 
@@ -63,7 +61,6 @@ def parse_detections(metadata: dict):
         for box, score, category in zip(boxes, scores, classes)
         if score > threshold and intrinsics.labels[int(category)].lower() in ALLOWED_CLASSES
     ]
-
     return last_detections
 
 
@@ -85,17 +82,10 @@ def draw_detections(request, stream="main"):
     with MappedArray(request, stream) as m:
         for detection in detections:
             x, y, w, h = detection.box
-
-
             """ call function here """
             print(f"{x + w//2}, {y + h//2}") #debug
-            #old code before target prediction
-            #target_coord = (f"{x + w//2}, {y + h//2}\n") 
-            tx = x + w//2
-            ty = y + h//2
-            predict_lead(lastPosition, tx, ty, m.array)
-
-
+            target_coord = (f"{x + w//2},{y + h//2}\n")
+            predict_lead(target_coord)
             """ draw circle on box """
             cv2.circle(m.array, (x + w//2, y + h//2), 5, (255, 0, 0), -1)
             label = f"{labels[int(detection.category)]} ({detection.conf:.2f})"
@@ -154,49 +144,9 @@ def get_args():
                         help="Print JSON network_intrinsics then exit")
     return parser.parse_args()
     
-def predict_lead(lastPosition, x, y, frame):
-    xyApp = (x, y)
-    lastPosition.append(xyApp)
-    if len(lastPosition) > 10:
-        lastPosition.pop(0)
-        
-    # Get avg coordinate lists
-    x_coords = [p[0] for p in lastPosition]
-    y_coords = [p[1] for p in lastPosition]
-
-    # Compute average velocity
-    dx = [x_coords[i+1] - x_coords[i] for i in range(len(x_coords)-1)]
-    dy = [y_coords[i+1] - y_coords[i] for i in range(len(y_coords)-1)]
-
-    if not dx or not dy:  # Avoid division by zero
-        return
-
-    dx_avg = sum(dx) / len(dx)
-    dy_avg = sum(dy) / len(dy)
-
-    # Compute speed (magnitude of velocity vector)
-    speed = (dx_avg**2 + dy_avg**2)**0.5
-
-    # Lead distance scales with speed
-    lead_distance = speed * 1.01
-
-    # Lead position along the velocity vector
-    lead_x = int(x + lead_distance * dx_avg)
-    lead_y = int(y + lead_distance * dy_avg)
-
-    # ✅ Draw green circle for predicted lead position
-    cv2.circle(frame, (lead_x, lead_y), 6, (0, 255, 0), -1)
-
-    # Optional: draw a faint line showing velocity direction
-    cv2.line(frame, (x, y), (lead_x, lead_y), (0, 255, 0), 1)
-
-    # Send over UART
-    target = f"{lead_x},{lead_y}\n"
-    ser.write(target.encode("utf-8"))
-    print(f"SENT over UART: {target.strip()}")
-
-    return
-
+def predict_lead(target):
+    ser.write(target.encode('utf-8'))
+    print('SENT over UART')
 
 
 if __name__ == "__main__":
