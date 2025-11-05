@@ -1,12 +1,10 @@
-// this program won't work correctly. Still needs frequency to be calculated correctly based off of received coords
-// also needs something to switch dirPin, we don't know center coords yet tho, so I couldn't implement this
-// love you
-
 #include <SoftwareSerial.h>
 
 String coords = "";
 int x = 0;
 int y = 0;
+int centerX = 320;
+int centerY = 240;
 int xFreq = 0;
 uint8_t yFreq = 0;
 
@@ -46,7 +44,6 @@ void setyFreq(int yFreq);
 int frequency_calculator(int coord, int curr_freq);
 
 void loop() {
-  static unsigned long lastUpdate = 0;
   while (rpiCoords.available() > 0) {  // receiving coords
     char c = rpiCoords.read();
     if (c == '\n') {  // if we received full coords
@@ -54,12 +51,15 @@ void loop() {
       int commaIndex = coords.indexOf(',');
       x = coords.substring(0, commaIndex).toInt();
       y = coords.substring(commaIndex + 1).toInt();
+      // change direction with parsed coords
+      set_dir('x', centerX, x);
+      set_dir('y', cetnerY, y);
       // change frequency with parsed coords
-      xFreq = frequency_calculator(x, xFreq);
-      yFreq = frequency_calculator(y, yFreq);
+      xFreq = frequency_calculator(x, xFreq, centerX);
+      yFreq = frequency_calculator(y, yFreq, centerY);
       setxFreq(xFreq);
       setYFreq(yFreq);
-    } else coords += c;
+    } else coords += c;  // continue to append chars until '\n'
   }
   // timer frequencies cannot not go lower than 122Hz or higher than 1MHz
   // Tim2 OCR2A caps out at 255
@@ -96,23 +96,54 @@ void setyFreq(int yFreq) {
   OCR2A = (uint8_t)((F_CPU / (2UL * 64UL * (unsigned long)yFreq)) - 1);
 }
 
-int frequency_calculator(int coord, int curr_freq) {
-  // will return a freq as a function of how far away the target is
-  // order of if subject to change. should be:
-  //    descending in order of most frequent case
-
-  // this function can also change dirPin without any repercussions
-  
-  if (curr_freq > 10*coord) {  // if approaching target too fast, slow down. speed is function of how far away target is
-    return 10*coord  // add lower bound
-  } else if (curr_freq == 0) {  // if stopped, start slow, don't jerk.
-    return 1000
-  } else if (coord < 20) {  // if close enough to target, stop
-    return 0
-  } else if (curr_freq < 10*coord) {  // if approaching target and still accelerating, continue to accelerate
-    return curr_freq*2  // add upper bound.
+int frequency_calculator(int coord, int curr_freq, int center) {
+  // returns a freq as a function of how far away the target is and how fast it's approaching it
+  // a coord of -300 and +300 should return the same freq, we don't care abt dir
+  if (curr_freq > 10*abs(coord-center)) {  // if approaching target too fast, slow down.
+    if (10*abs(coord-center) < 122) {
+      return 122
+    }
+    return 10*abs(coord-center)
+  // } else if (curr_freq == 0) {  // if stopped, start slow, don't jerk.
+  //   return 1000
+  // } else if (coord < 20) {  // if close enough to target, stop
+  //   return 0
+  } else {  // if approaching target and still accelerating, continue to accelerate
+    if (curr_freq*2 > 2000) {
+      return 2000
+    }
+    return curr_freq*2
   }
-
   // all hardcoded values subject to change. Just an example for now.
 }
+
+void set_dir(char axis, int center, int coord) {
+  // x and y are on separate timers, we need to be able to distinguish here.
+  // not possible to put this logic in the frequency calculator
+  if (axis == 'x') {
+    if (coord-center > 10) {
+      startTimer1();  // outside of deadzone, connect timer to pin
+      digitalWrite(xDirPin, LOW);  // moving clockwise
+    } else if (coord-center < 10 && coord-center > -10) {
+      stopTimer1();  // inside of deadzone, disconnect timer
+      // don't care abt direction in this case
+    } else if (coord-center < -10) {
+      startTimer1();  // outside of deadzone
+      digitalWrite(xDirPin, HIGH);  // moving counter-clockwise
+    }
+  } else if (axis == 'y') {
+    if (coord-center > 10) {
+      startTimer2();  // outside of deadzone, connect timer to pin
+      digitalWrite(yDirPin, LOW);  // moving clockwise
+    } else if (coord-center < 10 && coord-center > -10) {
+      stopTimer2();  // inside of deadzone, disconnect timer
+      // don't care abt direction in this case
+    } else if (coord-center < -10) {
+      startTimer2();  // outside of deadzone
+      digitalWrite(yDirPin, HIGH);  // moving counter-clockwise
+    }
+  }
+}
+
+
 
