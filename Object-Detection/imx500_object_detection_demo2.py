@@ -1,6 +1,7 @@
 import argparse
 import sys
 from functools import lru_cache
+from turtle import speed
 import serial
 import time
 
@@ -12,7 +13,7 @@ from picamera2.devices import IMX500
 from picamera2.devices.imx500 import (NetworkIntrinsics,
                                       postprocess_nanodet_detection)
 
-last_detections = []
+lastPosition = [(0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0)]
 
 
 
@@ -79,10 +80,17 @@ def draw_detections(request, stream="main"):
     with MappedArray(request, stream) as m:
         for detection in detections:
             x, y, w, h = detection.box
+
+
             """ call function here """
             print(f"{x + w//2}, {y + h//2}") #debug
-            target_coord = (f"{x + w//2}, {y + h//2}\n")
-            predict_lead(target_coord)
+            #old code before target prediction
+            #target_coord = (f"{x + w//2}, {y + h//2}\n") 
+            tx = x + w//2
+            ty = y + h//2
+            predict_lead(lastPosition, tx, ty)
+
+
             """ draw circle on box """
             cv2.circle(m.array, (x + w//2, y + h//2), 5, (255, 0, 0), -1)
             label = f"{labels[int(detection.category)]} ({detection.conf:.2f})"
@@ -141,7 +149,29 @@ def get_args():
                         help="Print JSON network_intrinsics then exit")
     return parser.parse_args()
     
-def predict_lead(target):
+def predict_lead(lastPosition, x, y):
+    lastPosition.append(target)
+    if len(lastPosition) > 10:
+        lastPosition.pop(0)
+
+    # Compute average velocity over the last 10 intervals
+    x_coords = [pos[0] for pos in lastPosition]
+    y_coords = [pos[1] for pos in lastP]
+    dx_avg = sum(x_coords[-2] - x_coords[i] for i in range(len(lastPosition) - 2)) / (len(lastPosition) - 2)
+    dy_avg = sum(y_coords[-2] - y_coords[i] for i in range(len(lastPosition) - 2)) / (len(lastPosition) - 2)
+    
+    # Compute speed (magnitude of velocity vector)
+    speed = (dx_avg**2 + dy_avg**2)**0.5
+
+    # Lead distance scales with speed
+    lead_distance = 0.0 + speed * 1.01   # set minimum units if necessary, increases proportionally to speed
+    
+    # Lead position along the velocity vector
+    lead_x = x + lead_distance * dx_avg
+    lead_y = y + lead_distance * dy_avg
+    target = (int(lead_x), int(lead_y))
+    target = f"{target[0]}, {target[1]}\n"
+    
     ser.write(target.encode('utf-8'))
     print('SENT over UART')
 
