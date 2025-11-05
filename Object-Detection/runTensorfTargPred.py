@@ -13,7 +13,7 @@ from picamera2.devices import IMX500
 from picamera2.devices.imx500 import (NetworkIntrinsics,
                                       postprocess_nanodet_detection)
 
-lastPosition = [(0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0)]
+lastPosition = [(0,0), (0,0), (0,0), (0,0), (0,0)]
 
 
 
@@ -157,7 +157,7 @@ def get_args():
 def predict_lead(lastPosition, x, y, frame):
     xyApp = (x, y)
     lastPosition.append(xyApp)
-    if len(lastPosition) > 10:
+    if len(lastPosition) > 5:
         lastPosition.pop(0)
         
     # Get avg coordinate lists
@@ -178,7 +178,7 @@ def predict_lead(lastPosition, x, y, frame):
     speed = (dx_avg**2 + dy_avg**2)**0.5
 
     # Lead distance scales with speed
-    lead_distance = speed * 1.01
+    lead_distance = speed 
 
     # Lead position along the velocity vector
     lead_x = int(x + lead_distance * dx_avg)
