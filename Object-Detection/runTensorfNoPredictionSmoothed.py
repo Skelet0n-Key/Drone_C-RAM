@@ -85,9 +85,14 @@ def draw_detections(request, stream="main"):
         for detection in detections:
             x, y, w, h = detection.box
             """ call function here """
-            print(f"{x + w//2}, {y + h//2}") #debug
-            target_coord = (f"{x + w//2},{y + h//2}\n")
-            predict_lead(target_coord)
+            # original detection center
+            center_x, center_y = x + w//2, y + h//2
+    
+            # Send to UART & get smoothed coordinates
+            smoothed_x, smoothed_y = predict_lead(f"{center_x},{center_y}")
+    
+            # Draw smoothed point (green)
+            cv2.circle(m.array, (smoothed_x, smoothed_y), 5, (0, 255, 0), -1)
             """ draw circle on box """
             cv2.circle(m.array, (x + w//2, y + h//2), 5, (255, 0, 0), -1)
             label = f"{labels[int(detection.category)]} ({detection.conf:.2f})"
@@ -164,6 +169,8 @@ def predict_lead(target):
     ser.write(smoothed_str.encode('utf-8'))
     print('SENT over UART:', smoothed_str.strip())
 
+    # Return smoothed coordinates for drawing
+    return smoothed_target
 
 if __name__ == "__main__":
     """Uart serial comm initialization"""
