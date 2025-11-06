@@ -1,7 +1,8 @@
 # Project Overview
 
 **Introduction**
-ML vision air defense turret prototype. Inspired by C-RAM/CIWS systems. Intended to combat small drones at close range, as a last line of defense. \
+
+ML vision air defense turret prototype. Inspired by C-RAM/CIWS systems. Intended to combat small drones at close range, as a last line of defense.
 
 **Challenges & solutions**
 - Learning to interface with the raspberry pi AI cam with integrated IMX500 ASIC to run ML locally.
@@ -11,6 +12,8 @@ ML vision air defense turret prototype. Inspired by C-RAM/CIWS systems. Intended
 - Designing a printable frame, utilizing common and widely available hardware. (shafts, bearings, belts, etc...)
     - We chose to use standard 3d printer parts for most of the hardware on the frame for accessibility and standardization. There are a couple random odds and ends like a 4" turntable bearing and a 6 wire gold contact slip joint for 360 degree rotation.
 - Accurately calculating target lead
+- Implementing PID in C++
+- Turret pitching too violently
 
 IN PROGRESS
 
