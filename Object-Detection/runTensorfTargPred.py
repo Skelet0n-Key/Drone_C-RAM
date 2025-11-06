@@ -13,7 +13,12 @@ from picamera2.devices import IMX500
 from picamera2.devices.imx500 import (NetworkIntrinsics,
                                       postprocess_nanodet_detection)
 
-lastPosition = [(0,0), (0,0), (0,0), (0,0), (0,0)]
+kf = cv2.KalmanFilter(4, 2)  # 4 state variables (x, y, dx, dy), 2 measurements (x, y)
+kf.measurementMatrix = np.array([[1,0,0,0],[0,1,0,0]], np.float32)
+kf.transitionMatrix = np.array([[1,0,1,0],[0,1,0,1],[0,0,1,0],[0,0,0,1]], np.float32)
+kf.processNoiseCov = np.eye(4, dtype=np.float32) * 0.03
+
+
 
 
 
@@ -89,12 +94,11 @@ def draw_detections(request, stream="main"):
 
             """ call function here """
             print(f"{x + w//2}, {y + h//2}") #debug
-            #old code before target prediction
-            #target_coord = (f"{x + w//2}, {y + h//2}\n") 
-            tx = x + w//2
-            ty = y + h//2
-            predict_lead(lastPosition, tx, ty, m.array)
-
+            target = (f"{x + w//2},{y + h//2}\n") 
+            #tx = x + w//2
+            #ty = y + h//2
+            pred_x, pred_y = predict_lead(target)
+            cv2.circle(m.array, (pred_x, pred_y), 5, (0, 255, 0), -1)
 
             """ draw circle on box """
             cv2.circle(m.array, (x + w//2, y + h//2), 5, (255, 0, 0), -1)
@@ -154,49 +158,17 @@ def get_args():
                         help="Print JSON network_intrinsics then exit")
     return parser.parse_args()
     
-def predict_lead(lastPosition, x, y, frame):
-    xyApp = (x, y)
-    lastPosition.append(xyApp)
-    if len(lastPosition) > 5:
-        lastPosition.pop(0)
-        
-    # Get avg coordinate lists
-    x_coords = [p[0] for p in lastPosition]
-    y_coords = [p[1] for p in lastPosition]
-
-    # Compute average velocity
-    dx = [x_coords[i+1] - x_coords[i] for i in range(len(x_coords)-1)]
-    dy = [y_coords[i+1] - y_coords[i] for i in range(len(y_coords)-1)]
-
-    if not dx or not dy:  # Avoid division by zero
-        return
-
-    dx_avg = sum(dx) / len(dx)
-    dy_avg = sum(dy) / len(dy)
-
-    # Compute speed (magnitude of velocity vector)
-    speed = (dx_avg**2 + dy_avg**2)**0.5
-
-    # Lead distance scales with speed
-    lead_distance = speed 
-
-    # Lead position along the velocity vector
-    lead_x = int(x + lead_distance * dx_avg)
-    lead_y = int(y + lead_distance * dy_avg)
-
-    # ✅ Draw green circle for predicted lead position
-    cv2.circle(frame, (lead_x, lead_y), 6, (0, 255, 0), -1)
-
-    # Optional: draw a faint line showing velocity direction
-    cv2.line(frame, (x, y), (lead_x, lead_y), (0, 255, 0), 1)
-
-    # Send over UART
-    target = f"{lead_x},{lead_y}\n"
-    ser.write(target.encode("utf-8"))
-    print(f"SENT over UART: {target.strip()}")
-
-    return
-
+def predict_lead(target):
+    x, y = map(float, target.split(','))
+    measurement = np.array([[x], [y]], np.float32)
+    kf.correct(measurement)
+    prediction = kf.predict()
+    pred_x, pred_y = int(prediction[0]), int(prediction[1])
+    
+    smoothed_str = f"{pred_x},{pred_y}\n"
+    ser.write(smoothed_str.encode('utf-8'))
+    print('SENT over UART:', smoothed_str.strip())
+    return pred_x, pred_y
 
 
 if __name__ == "__main__":
