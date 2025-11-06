@@ -16,8 +16,8 @@ from picamera2.devices.imx500 import (NetworkIntrinsics,
 kf = cv2.KalmanFilter(4, 2)  # 4 state variables (x, y, dx, dy), 2 measurements (x, y)
 kf.measurementMatrix = np.array([[1,0,0,0],[0,1,0,0]], np.float32)
 kf.transitionMatrix = np.array([[1,0,1,0],[0,1,0,1],[0,0,1,0],[0,0,0,1]], np.float32)
-kf.processNoiseCov = np.eye(4, dtype=np.float32) * 0.03
-
+kf.processNoiseCov = np.eye(4, dtype=np.float32) * 0.01 #change * <0.1> here for more smoothing. smaller number = more smoothing
+leadFrames = 5 #adjust lead size here by number of frames extended
 
 
 
@@ -93,11 +93,10 @@ def draw_detections(request, stream="main"):
 
 
             """ call function here """
-            print(f"{x + w//2}, {y + h//2}") #debug
             target = (f"{x + w//2},{y + h//2}\n") 
             #tx = x + w//2
             #ty = y + h//2
-            pred_x, pred_y = predict_lead(target)
+            pred_x, pred_y = predict_lead(target, leadFrames)
             cv2.circle(m.array, (pred_x, pred_y), 5, (0, 255, 0), -1)
 
             """ draw circle on box """
