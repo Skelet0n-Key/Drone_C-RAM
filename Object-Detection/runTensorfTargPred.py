@@ -158,16 +158,27 @@ def get_args():
                         help="Print JSON network_intrinsics then exit")
     return parser.parse_args()
     
-def predict_lead(target):
+def predict_lead(target, lead_frames=5):
+    # Parse measurement
     x, y = map(float, target.split(','))
     measurement = np.array([[x], [y]], np.float32)
+    
+    # Correct Kalman with current measurement
     kf.correct(measurement)
+    
+    # Predict next state
     prediction = kf.predict()
-    pred_x, pred_y = int(prediction[0]), int(prediction[1])
+    # prediction is [x, y, dx, dy]
+    px, py, vx, vy = prediction[:,0]  # extract values
+    
+    # Extrapolate lead
+    pred_x = int(px + vx * lead_frames)
+    pred_y = int(py + vy * lead_frames)
     
     smoothed_str = f"{pred_x},{pred_y}\n"
     ser.write(smoothed_str.encode('utf-8'))
     print('SENT over UART:', smoothed_str.strip())
+    
     return pred_x, pred_y
 
 
