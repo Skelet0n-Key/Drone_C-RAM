@@ -117,7 +117,7 @@ int frequency_calculator(int coord, int curr_freq, int center) {
     return 2*abs(coord-center);
   } else {  // if approaching target and still accelerating, continue to accelerate
     if ((int)((double)curr_freq*1.05)) {
-      return 1000;
+      return 500;
     }
     return (int)((double)curr_freq*1.05);
   }
