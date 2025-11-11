@@ -116,7 +116,7 @@ This C-RAM was not cheap. This was a project we were excited about, so we spared
 
 ## CAD Files
 
-We used a total of (seven) 3D printed parts on this project. You can find them [here.](CAD-files)
+We used a total of (seven) 3D printed parts on this project. You can find them [here.](https://github.com/Skelet0n-Key/Drone_C-RAM/tree/main/CAD_files)
 
 
 # Acknowledgements
