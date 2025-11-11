@@ -52,7 +52,8 @@ void stopTimer2();
 void startTimer2();
 void setxFreq(int xFreq);
 void setyFreq(int yFreq);
-int frequency_calculator(int coord, int curr_freq, int center);
+int xfrequency_calculator(int coord, int curr_freq, int center);
+int yfrequency_calculator(int coord, int curr_freq, int center);
 void set_dir(char axis, int center, int coord);
 
 // Stepper functions
@@ -97,8 +98,8 @@ void loop() {
       set_dir('x', centerX, x);
       set_dir('y', centerY, y);
 
-      xFreq = frequency_calculator(x, xFreq, centerX);
-      yFreq = frequency_calculator(y, yFreq, centerY);
+      xFreq = xfrequency_calculator(x, xFreq, centerX);
+      yFreq = yfrequency_calculator(y, yFreq, centerY);
 
       setxFreq(xFreq);
       setyFreq(yFreq);
@@ -161,7 +162,7 @@ void releaseCoils() {
   for (int i = STEP_IN1; i <= STEP_IN4; i++) digitalWrite(i, LOW);
 }
 
-// ---------------- Existing Timer & PID Functions ----------------
+// timer and frequency functions
 void stopTimer1() {
   TCCR1A &= ~(1 << COM1A0);
   digitalWrite(xPulsePin, LOW);
@@ -188,12 +189,22 @@ void setyFreq(int yFreq) {
   OCR2A = (uint8_t)((F_CPU / (2UL * 64UL * (unsigned long)yFreq)) - 1);
 }
 
-int frequency_calculator(int coord, int curr_freq, int center) {
+int xfrequency_calculator(int coord, int curr_freq, int center) {
+  if (curr_freq > 2*abs(coord-center)) {  // deceleration curve
+    if (2*abs(coord-center) < 122) return 122;
+    return 2*abs(coord-center);
+  } else {
+    if ((int)((double)curr_freq*1.05 > 1000)) return 1000;  // acceleration curve
+    return (int)((double)curr_freq*1.05);
+  }
+}
+
+in yfrequency_calculator(int coord, int curr_freq, int center) {
   if (curr_freq > 2*abs(coord-center)) {
     if (2*abs(coord-center) < 122) return 122;
     return 2*abs(coord-center);
   } else {
-    if ((int)((double)curr_freq*1.05)) return 500;
+    if ((int)((double)curr_freq*1.05 > 500)) return 500;
     return (int)((double)curr_freq*1.05);
   }
 }
