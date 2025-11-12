@@ -22,6 +22,20 @@ const int STEP_IN4 = 5;
 const int STEPS_PER_REV = 2048;
 const int STEPS_PER_EIGHTH = STEPS_PER_REV / 2;
 
+const double X_ACCEL_FACTOR = 1.1;
+const double X_DECEL_FACTOR = 0.8;
+const double X_CURVE_COEFFICIENT = 0.25;
+const int X_COORD = 70;
+const int X_FREQ_CAP = 4000;
+const double Y_ACCEL_FACTOR = 1.05;
+const double Y_DECEL_FACTOR = 0.75;
+const double Y_CURVE_COEFFICIENT = 2.5;
+const int Y_COORD = NULL;
+const int Y_FREQ_CAP = 500;
+
+const int X_DEADZONE = 20;  // true deadzone is times two
+const int Y_DEADZONE = 20;
+
 // Half-step sequence
 const int sequence[8][4] = {
   {1,0,0,0},
@@ -109,8 +123,8 @@ void loop() {
   }
 
   // Check if turret is in dead zone
-  bool xDead = abs(x - centerX) <= 20;
-  bool yDead = abs(y - centerY) <= 20;
+  bool xDead = abs(x - centerX) <= 40;
+  bool yDead = abs(y - centerY) <= 60;
 
   if (xDead && yDead) {
     // Fire when in dead zone
@@ -190,41 +204,41 @@ void setyFreq(int yFreq) {
 }
 
 int xfrequency_calculator(int coord, int curr_freq, int center) {
-  if (curr_freq > 2*abs(coord-center)) {  // deceleration curve
-    if ((int)((double)curr_freq*0.95 < 122)) return 122;
-    return (int)((double)curr_freq*0.95);
+  if (abs(coord-center) < X_COORD) {  // deceleration curve
+    if ((int)((double)curr_freq*X_DECEL_FACTOR < 122)) return 122;
+    return (int)((double)curr_freq*X_DECEL_FACTOR);
   } else {
-    if ((int)((double)curr_freq*1.05 > 1000)) return 1000;  // acceleration curve
-    return (int)((double)curr_freq*1.05);
+    if ((int)((double)curr_freq*X_ACCEL_FACTOR > X_FREQ_CAP)) return X_FREQ_CAP;  // acceleration curve
+    return (int)((double)curr_freq*X_ACCEL_FACTOR);
   }
 }
 
-in yfrequency_calculator(int coord, int curr_freq, int center) {
-  if (curr_freq > 2*abs(coord-center)) {
-    if ((int)((double)curr_freq*0.95 < 122)) return 122;
-    return (int)((double)curr_freq*0.95);
+int yfrequency_calculator(int coord, int curr_freq, int center) {
+  if (curr_freq > Y_CURVE_COEFFICIENT*abs(coord-center)) {
+    if ((int)((double)curr_freq*Y_DECEL_FACTOR < 122)) return 122;
+    return (int)((double)curr_freq*Y_DECEL_FACTOR);
   } else {
-    if ((int)((double)curr_freq*1.05 > 1000)) return 1000;  // acceleration curve
-    return (int)((double)curr_freq*1.05);
+    if ((int)((double)curr_freq*Y_ACCEL_FACTOR > Y_FREQ_CAP)) return Y_FREQ_CAP;  // acceleration curve
+    return (int)((double)curr_freq*Y_ACCEL_FACTOR);
   }
 }
 
 void set_dir(char axis, int center, int coord) {
   if (axis == 'x') {
-    if (coord - center > 20) {
+    if (coord - center > X_DEADZONE) {
       startTimer1();
       digitalWrite(xDirPin, LOW);
-    } else if (coord - center < -20) {
+    } else if (coord - center < -1*X_DEADZONE) {
       startTimer1();
       digitalWrite(xDirPin, HIGH);
     } else {
       stopTimer1();
     }
   } else if (axis == 'y') {
-    if (coord - center > 20) {
+    if (coord - center > Y_DEADZONE) {
       startTimer2();
       digitalWrite(yDirPin, LOW);
-    } else if (coord - center < -20) {
+    } else if (coord - center < -1*Y_DEADZONE) {
       startTimer2();
       digitalWrite(yDirPin, HIGH);
     } else {
