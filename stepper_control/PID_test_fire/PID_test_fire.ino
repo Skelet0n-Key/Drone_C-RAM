@@ -191,8 +191,8 @@ void setyFreq(int yFreq) {
 
 int xfrequency_calculator(int coord, int curr_freq, int center) {
   if (curr_freq > 2*abs(coord-center)) {  // deceleration curve
-    if (2*abs(coord-center) < 122) return 122;
-    return 2*abs(coord-center);
+    if ((int)((double)curr_freq*0.95 < 122)) return 122;
+    return (int)((double)curr_freq*0.95);
   } else {
     if ((int)((double)curr_freq*1.05 > 1000)) return 1000;  // acceleration curve
     return (int)((double)curr_freq*1.05);
@@ -201,10 +201,10 @@ int xfrequency_calculator(int coord, int curr_freq, int center) {
 
 in yfrequency_calculator(int coord, int curr_freq, int center) {
   if (curr_freq > 2*abs(coord-center)) {
-    if (2*abs(coord-center) < 122) return 122;
-    return 2*abs(coord-center);
+    if ((int)((double)curr_freq*0.95 < 122)) return 122;
+    return (int)((double)curr_freq*0.95);
   } else {
-    if ((int)((double)curr_freq*1.05 > 500)) return 500;
+    if ((int)((double)curr_freq*1.05 > 1000)) return 1000;  // acceleration curve
     return (int)((double)curr_freq*1.05);
   }
 }
