@@ -162,8 +162,9 @@ def predict_lead(target):
         # EMA smoothing
         smoothed_target = (int(alpha * x + (1 - alpha) * smoothed_target[0]), int(alpha * y + (1 - alpha) * smoothed_target[1]))
         
+    smoothed_target = smoothed_target[0],(smoothed_target[1]-20) #testing purposes offset for people center mass.
     smoothed_str = f"{smoothed_target[0]},{smoothed_target[1]}\n"
-    ser.write(smoothed_str.encode('utf-8'))
+    ser.write(smoothed_str.encode('utf-8'))#serial write happens here
     print('SENT over UART:', smoothed_str.strip())
 
     # Return smoothed coordinates for drawing
