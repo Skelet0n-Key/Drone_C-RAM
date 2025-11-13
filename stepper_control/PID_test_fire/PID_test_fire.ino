@@ -22,11 +22,11 @@ const int STEP_IN4 = 5;
 const int STEPS_PER_REV = 2048;
 const int STEPS_PER_EIGHTH = STEPS_PER_REV / 2;
 
-const double X_ACCEL_FACTOR = 1.1;
-const double X_DECEL_FACTOR = 0.8;
+const double X_ACCEL_FACTOR = 1.08;
+const double X_DECEL_FACTOR = 0.75;
 const double X_CURVE_COEFFICIENT = 0.25;
-const int X_COORD = 70;
-const int X_FREQ_CAP = 4000;
+const int X_COORD = 50;
+const int X_FREQ_CAP = 2500;
 const double Y_ACCEL_FACTOR = 1.05;
 const double Y_DECEL_FACTOR = 0.75;
 const double Y_CURVE_COEFFICIENT = 2.5;
