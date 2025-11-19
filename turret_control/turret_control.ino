@@ -21,7 +21,7 @@ int xDirPin = 8;
 int yPulsePin = 11;  // Timer2 OCR2A
 int yDirPin = 10;
 
-int millis_without_coords;
+unsigned long millis_without_coords = 0;
 
 const double X_CURVE_COEFFICIENT = 2;
 const int X_FREQ_MAX = 2000;
@@ -70,6 +70,12 @@ void setup() {
 
 void loop() {
   unsigned long curr_millis = millis();
+
+  if (curr_millis - millis_without_coords >= 500) {
+    stopTimer0();
+    stopTimer2();
+  }
+
   // Serial input parsing
   while (Serial.available() > 0) {
     char c = Serial.read();
@@ -90,11 +96,6 @@ void loop() {
       coords = "";
       millis_without_coords = curr_millis;
     } else coords += c;
-  }
-
-  if (curr_millis - millis_without_coords >= 500) {
-    stopTimer0();
-    stopTimer2();
   }
 }
 
