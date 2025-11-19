@@ -1,12 +1,10 @@
 /*
- *Y tb6600 setting 4 microstep (on off off)
- *X tb6600 setting 2b microstep(off on on)
- *both amp setting 2.5 (off on on)
- *
- *
- *
- *
- * */
+ Y tb6600 setting 4 microstep (on off off)
+ X tb6600 setting 2b microstep(off on on)
+ both amp setting 2.5 (off on on)
+ 
+
+*/
 
 #include <Arduino.h>
 
@@ -22,6 +20,8 @@ int xPulsePin = 6;   // Timer0 OCR0A
 int xDirPin = 8;
 int yPulsePin = 11;  // Timer2 OCR2A
 int yDirPin = 10;
+
+int millis_without_coords;
 
 const double X_CURVE_COEFFICIENT = 2;
 const int X_FREQ_MAX = 2000;
@@ -69,6 +69,7 @@ void setup() {
 }
 
 void loop() {
+  unsigned long curr_millis = millis();
   // Serial input parsing
   while (Serial.available() > 0) {
     char c = Serial.read();
@@ -87,7 +88,13 @@ void loop() {
       setyFreq(yFreq);
 
       coords = "";
+      millis_without_coords = curr_millis;
     } else coords += c;
+  }
+
+  if (curr_millis - millis_without_coords >= 500) {
+    stopTimer0();
+    stopTimer2();
   }
 }
 
