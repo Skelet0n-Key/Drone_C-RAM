@@ -8,26 +8,26 @@ int centerY = 240;
 int xFreq = 100;
 int yFreq = 100;
 
-int xPulsePin = 9;   // Timer1 OC1A
+int xPulsePin = 6;   // Timer1 OC1A
 int xDirPin = 8;
 int yPulsePin = 11;  // Timer2 OC2A
 int yDirPin = 10;
 
-const double X_CURVE_COEFFICIENT = 5;
+const double X_CURVE_COEFFICIENT = 2;
 const int X_FREQ_MAX = 2000;
-const int X_FREQ_MIN = 100;
-const int X_ACCEL_LIMIT = 30;
-const double Y_CURVE_COEFFICIENT = 3;
-const int Y_FREQ_MAX = 1000;
+const int X_FREQ_MIN = 31;
+const int X_ACCEL_LIMIT = 50;
+const double Y_CURVE_COEFFICIENT = 4;
+const int Y_FREQ_MAX = 2000;
 const int Y_FREQ_MIN = 31;
-const int Y_ACCEL_LIMIT = 20;
+const int Y_ACCEL_LIMIT = 50;
 
 const int X_DEADZONE = 20;  // true deadzone is times two
 const int Y_DEADZONE = 20;
 
 // Function prototypes
-void stopTimer1();
-void startTimer1();
+void stopTimer0();
+void startTimer0();
 void stopTimer2();
 void startTimer2();
 void setxFreq(int xFreq);
@@ -37,24 +37,24 @@ int yfrequency_calculator(int coord, int curr_freq, int center);
 void set_dir(char axis, int center, int coord);
 
 void setup() {
-  // Timer1 - prescaler 256
-  TCCR1A = (1 << COM1A0);
-  TCCR1B = (1 << WGM12) | (1 << CS12);
-  OCR1A = (F_CPU / (2 * 256 * 1000)) - 1;
-
-  // Timer2 - prescaler 1024
-  TCCR2A = (1 << COM2A0) | (1 << WGM21);
-  TCCR2B = (1 << CS22) | (1 << CS21) | (1 << CS20);
+  // Timer0 - prescaler 1024, 1kHz output on Pin 6 (X-axis)
+  TCCR0A = (1 << COM0A0) | (1 << WGM01);  // Toggle mode, CTC mode
+  TCCR0B = (1 << CS02) | (1 << CS00);     // Prescaler 1024
+  OCR0A = (uint8_t)((F_CPU / (2UL * 1024UL * 1000UL)) - 1);
+  
+  // Timer2 - prescaler 1024, 1kHz output on Pin 11 (Y-axis)
+  TCCR2A = (1 << COM2A0) | (1 << WGM21);  // Toggle mode, CTC mode
+  TCCR2B = (1 << CS22) | (1 << CS21) | (1 << CS20);  // Prescaler 1024
   OCR2A = (uint8_t)((F_CPU / (2UL * 1024UL * 1000UL)) - 1);
-
+  
   pinMode(xPulsePin, OUTPUT);
   pinMode(xDirPin, OUTPUT);
   pinMode(yPulsePin, OUTPUT);
   pinMode(yDirPin, OUTPUT);
-
+  
   Serial.begin(115200);
-
-  stopTimer1();
+  
+  stopTimer0();  // Changed from stopTimer1()
   stopTimer2();
 }
 
@@ -82,13 +82,13 @@ void loop() {
 }
 
 // timer and frequency functions
-void stopTimer1() {
-  TCCR1A &= ~(1 << COM1A0);
+void stopTimer0() {
+  TCCR0A &= ~(1 << COM0A0);  // Changed from TCCR1A and COM1A0
   digitalWrite(xPulsePin, LOW);
 }
 
-void startTimer1() {
-  TCCR1A |= (1 << COM1A0);
+void startTimer0() {
+  TCCR0A |= (1 << COM0A0);
 }
 
 void stopTimer2() {
@@ -101,7 +101,7 @@ void startTimer2() {
 }
 
 void setxFreq(int xFreq) {
-  OCR1A = (F_CPU / (2UL * 256UL * (unsigned long)xFreq)) - 1;
+  OCR0A = (F_CPU / (2UL * 1024UL * (unsigned long)xFreq)) - 1;  // Changed OCR1A to OCR0A, and 256 to 1024
 }
 
 void setyFreq(int yFreq) {
@@ -137,13 +137,13 @@ int yfrequency_calculator(int coord, int curr_freq, int center) {
 void set_dir(char axis, int center, int coord) {
   if (axis == 'x') {
     if (coord - center > X_DEADZONE) {
-      startTimer1();
+      startTimer0();
       digitalWrite(xDirPin, LOW);
     } else if (coord - center < -1*X_DEADZONE) {
-      startTimer1();
+      startTimer0();
       digitalWrite(xDirPin, HIGH);
     } else {
-      stopTimer1();
+      stopTimer0();
     }
   } else if (axis == 'y') {
     if (coord - center > Y_DEADZONE) {
