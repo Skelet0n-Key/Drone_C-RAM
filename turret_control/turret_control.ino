@@ -1,3 +1,13 @@
+/*
+ *Y tb6600 setting 4 microstep (on off off)
+ *X tb6600 setting 2b microstep(off on on)
+ *both amp setting 2.5 (off on on)
+ *
+ *
+ *
+ *
+ * */
+
 #include <Arduino.h>
 
 String coords = "";
@@ -8,9 +18,9 @@ int centerY = 240;
 int xFreq = 100;
 int yFreq = 100;
 
-int xPulsePin = 6;   // Timer1 OC1A
+int xPulsePin = 6;   // Timer0 OCR0A
 int xDirPin = 8;
-int yPulsePin = 11;  // Timer2 OC2A
+int yPulsePin = 11;  // Timer2 OCR2A
 int yDirPin = 10;
 
 const double X_CURVE_COEFFICIENT = 2;
