@@ -21,6 +21,7 @@ int xDirPin = 8;
 int yPulsePin = 11;  // Timer2 OCR2A
 int yDirPin = 10;
 
+volatile unsigned long timer1_millis = 0;
 unsigned long millis_without_coords = 0;
 
 const double X_CURVE_COEFFICIENT = 2;
@@ -51,6 +52,14 @@ void setup() {
   TCCR0A = (1 << COM0A0) | (1 << WGM01);  // Toggle mode, CTC mode
   TCCR0B = (1 << CS02) | (1 << CS00);     // Prescaler 1024
   OCR0A = (uint8_t)((F_CPU / (2UL * 1024UL * 1000UL)) - 1);
+
+  // Timer1 setup for 1ms interrupts
+  TCCR1A = 0;  // Normal mode
+  TCCR1B = (1 << WGM12) | (1 << CS11) | (1 << CS10);  // CTC mode, prescaler 64
+  TCNT1 = 0;
+  OCR1A = 249;  // 16MHz / 64 / 250 = 1000 Hz (1ms)
+  TIMSK1 |= (1 << OCIE1A);  // Enable compare interrupt
+  sei();  // Enable global interrupts
   
   // Timer2 - prescaler 1024, 1kHz output on Pin 11 (Y-axis)
   TCCR2A = (1 << COM2A0) | (1 << WGM21);  // Toggle mode, CTC mode
@@ -68,8 +77,20 @@ void setup() {
   stopTimer2();
 }
 
+ISR(TIMER1_COMPA_vect) {
+  timer1_millis++;
+}
+
+unsigned long timer1_millis_get() {
+  unsigned long m;
+  noInterrupts();
+  m = timer1_millis;
+  interrupts();
+  return m;
+}
+
 void loop() {
-  unsigned long curr_millis = millis();
+  unsigned long curr_millis = timer1_millis_get();
 
   if (curr_millis - millis_without_coords >= 500) {
     stopTimer0();
