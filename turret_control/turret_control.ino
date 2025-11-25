@@ -2,8 +2,6 @@
  Y tb6600 setting 4 microstep (on off off)
  X tb6600 setting 2b microstep(off on on)
  both amp setting 2.5 (off on on)
- 
-
 */
 
 #include <Arduino.h>
@@ -21,9 +19,43 @@ int xDirPin = 8;
 int yPulsePin = 11;  // Timer2 OCR2A
 int yDirPin = 10;
 
+// ULN2003 stepper pins
+const int STEP_IN1 = 2;
+const int STEP_IN2 = 3;
+const int STEP_IN3 = 4;
+const int STEP_IN4 = 5;
+
+const int STEPS_PER_REV = 2048;
+const int STEPS_PER_EIGHTH = STEPS_PER_REV / 2;
+
+// Half-step sequence for trigger stepper
+const int sequence[8][4] = {
+  {1,0,0,0},
+  {1,1,0,0},
+  {0,1,0,0},
+  {0,1,1,0},
+  {0,0,1,0},
+  {0,0,1,1},
+  {0,0,0,1},
+  {1,0,0,1}
+};
+
+// Stepper state
+struct StepperState {
+  int currentStep = 0;
+  int stepsRemaining = 0;
+  int direction = 1;
+  unsigned long lastStepTime = 0;
+  int stepDelay = 1; // ms
+  bool active = false;
+  bool stateFired = false; // has fire been triggered
+} stepper;
+
+// Timeout vars
 volatile unsigned long timer1_millis = 0;
 unsigned long millis_without_coords = 0;
 
+// Turret behavior params
 const double X_CURVE_COEFFICIENT = 2;
 const int X_FREQ_MAX = 2000;
 const int X_FREQ_MIN = 31;
@@ -36,7 +68,7 @@ const int Y_ACCEL_LIMIT = 50;
 const int X_DEADZONE = 20;  // true deadzone is times two
 const int Y_DEADZONE = 20;
 
-// Function prototypes
+// Function prototypes for turret control
 void stopTimer0();
 void startTimer0();
 void stopTimer2();
@@ -46,6 +78,11 @@ void setyFreq(int yFreq);
 int xfrequency_calculator(int coord, int curr_freq, int center);
 int yfrequency_calculator(int coord, int curr_freq, int center);
 void set_dir(char axis, int center, int coord);
+
+// Stepper functions
+void updateStepper();
+void driveStepper(bool fire);
+void releaseCoils();
 
 void setup() {
   // Timer0 - prescaler 1024, 1kHz output on Pin 6 (X-axis)
@@ -70,6 +107,8 @@ void setup() {
   pinMode(xDirPin, OUTPUT);
   pinMode(yPulsePin, OUTPUT);
   pinMode(yDirPin, OUTPUT);
+
+  for(int i = STEP_IN1; i <= STEP_IN4; i++) pinMode(i, OUTPUT);
   
   Serial.begin(115200);
   
@@ -92,7 +131,7 @@ unsigned long timer1_millis_get() {
 void loop() {
   unsigned long curr_millis = timer1_millis_get();
 
-  if (curr_millis - millis_without_coords >= 500) {
+  if (curr_millis - millis_without_coords >= 900) {
     stopTimer0();
     stopTimer2();
   }
@@ -118,6 +157,21 @@ void loop() {
       millis_without_coords = curr_millis;
     } else coords += c;
   }
+
+  // Check if turret is in dead zone
+  bool xDead = abs(x - centerX) <= 40;
+  bool yDead = abs(y - centerY) <= 60;
+
+  if (xDead && yDead) {
+    // Fire when in dead zone
+    driveStepper(true);
+  } else {
+    // Reverse to original position when leaving dead zone
+    driveStepper(false);
+  }
+
+  // Non-blocking stepper update
+  updateStepper();
 }
 
 // timer and frequency functions
@@ -195,4 +249,42 @@ void set_dir(char axis, int center, int coord) {
       stopTimer2();
     }
   }
+}
+
+// Trigger stepper functions
+void updateStepper() {
+  if (!stepper.active) return;
+
+  unsigned long now = millis();
+  if (now - stepper.lastStepTime >= stepper.stepDelay) {
+    stepper.currentStep = (stepper.currentStep + stepper.direction + 8) % 8;
+    for (int i = 0; i < 4; i++) {
+      digitalWrite(STEP_IN1 + i, sequence[stepper.currentStep][i]);
+    }
+    stepper.lastStepTime = now;
+    stepper.stepsRemaining--;
+
+    if (stepper.stepsRemaining <= 0) {
+      stepper.active = false;
+      releaseCoils();
+    }
+  }
+}
+
+void driveStepper(bool fire) {
+  if (fire && !stepper.stateFired && !stepper.active) {
+    stepper.active = true;
+    stepper.direction = 1;
+    stepper.stepsRemaining = STEPS_PER_EIGHTH;
+    stepper.stateFired = true;
+  } else if (!fire && stepper.stateFired && !stepper.active) {
+    stepper.active = true;
+    stepper.direction = -1;
+    stepper.stepsRemaining = STEPS_PER_EIGHTH;
+    stepper.stateFired = false;
+  }
+}
+
+void releaseCoils() {
+  for (int i = STEP_IN1; i <= STEP_IN4; i++) digitalWrite(i, LOW);
 }
