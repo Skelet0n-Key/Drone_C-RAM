@@ -55,14 +55,19 @@ def parse_detections(metadata: dict):
         boxes = np.array_split(boxes, 4, axis=1)
         boxes = zip(*boxes)
 
-    '''ADDED filter for desired class'''
-    ALLOWED_CLASSES = {"drones"}
+    detections_raw = list(zip(boxes, scores, classes))
+
+    for box, score, category in detections_raw:
+        label_name = intrinsics.labels[int(category)]
+        print("RAW DETECTION:", "cat_idx=", int(category), "label=", label_name,
+              "score=", float(score))
 
     last_detections = [
         Detection(box, category, score, metadata)
-        for box, score, category in zip(boxes, scores, classes)
-        if score > threshold and intrinsics.labels[int(category)].lower() in ALLOWED_CLASSES
+        for box, score, category in detections_raw
+        if score > threshold
     ]
+
     return last_detections
 
 
@@ -132,12 +137,12 @@ def draw_detections(request, stream="main"):
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str, help="Path of the model",
-                        default="/home/blowyoshihsmooveoff/Drone_C-RAM/ML_models/best_imx_model/drone_model/network.rpk")
+                        default="/home/blowyoshihsmooveoff/Drone_C-RAM/ML_models/best_imx_model/drone_model/network.rpk") # model path
     parser.add_argument("--fps", type=int, help="Frames per second")
     parser.add_argument("--bbox-normalization", action=argparse.BooleanOptionalAction, help="Normalize bbox")
     parser.add_argument("--bbox-order", choices=["yx", "xy"], default="yx",
                         help="Set bbox order yx -> (y0, x0, y1, x1) xy -> (x0, y0, x1, y1)")
-    parser.add_argument("--threshold", type=float, default=0.55, help="Detection threshold")
+    parser.add_argument("--threshold", type=float, default=0.45, help="Detection threshold") # confidence threshold
     parser.add_argument("--iou", type=float, default=0.65, help="Set iou threshold")
     parser.add_argument("--max-detections", type=int, default=10, help="Set max detections")
     parser.add_argument("--ignore-dash-labels", action=argparse.BooleanOptionalAction, help="Remove '-' labels ")
@@ -162,7 +167,7 @@ def predict_lead(target):
         # EMA smoothing
         smoothed_target = (int(alpha * x + (1 - alpha) * smoothed_target[0]), int(alpha * y + (1 - alpha) * smoothed_target[1]))
         
-    smoothed_target = smoothed_target[0],(smoothed_target[1]-20) #testing purposes offset for people center mass.
+    #smoothed_target = smoothed_target[0],(smoothed_target[1]-20) #testing purposes offset for people center mass.
     smoothed_str = f"{smoothed_target[0]},{smoothed_target[1]}\n"
     ser.write(smoothed_str.encode('utf-8'))#serial write happens here
     print('SENT over UART:', smoothed_str.strip())
@@ -197,7 +202,7 @@ if __name__ == "__main__":
 
     # Defaults
     if intrinsics.labels is None:
-        with open("/home/blowyoshihsmooveoff/Drone_C-RAM/ML_models/best_imx_model/labels.txt", "r") as f:
+        with open("/home/blowyoshihsmooveoff/Drone_C-RAM/ML_models/best_imx_model/labels.txt", "r") as f: #labels path
             intrinsics.labels = f.read().splitlines()
     intrinsics.update_with_defaults()
 
