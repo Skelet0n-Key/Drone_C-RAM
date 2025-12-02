@@ -20,18 +20,20 @@ int yPulsePin = 11;  // Timer2 OCR2A
 int yDirPin = 10;
 
 // y-limit switches
-const int Y_UP_LIMIT_PIN = 13;
-const int Y_DOWN_LIMIT_PIN = 12;
+const int Y_DOWN_LIMIT_PIN = 2;
+const int Y_UP_LIMIT_PIN = 3;
 
 volatile bool yLimitLock = false;
 volatile bool yUpLimit = false;
 volatile bool yDownLimit = false;
+volatile bool yRecover = false;
+volatile bool scan = false;
 
 // ULN2003 stepper pins
-const int STEP_IN1 = 2;
-const int STEP_IN2 = 3;
-const int STEP_IN3 = 4;
-const int STEP_IN4 = 5;
+const int STEP_IN1 = 4;
+const int STEP_IN2 = 5;
+const int STEP_IN3 = 12;
+const int STEP_IN4 = 13;
 
 const int STEPS_PER_REV = 2048;
 const int STEPS_PER_EIGHTH = STEPS_PER_REV / 2;
@@ -154,6 +156,12 @@ void yDownLimitISR() {
   yDownLimit = true;
 }
 
+
+
+// ===============================================================
+// ===============================================================
+
+
 void loop() {
   if (yRecover) {
     stopTimer0();
@@ -161,31 +169,41 @@ void loop() {
 
     if (yUpLimit) {
       digitalWrite(yDirPin, LOW);
+      setyFreq(150);
+      startTimer2();
     }
     if (yDownLimit) {
       digitalWrite(yDirPin, HIGH);
+      setyFreq(250);
+      startTimer2();
     }
 
-    setyFreq(50);
-    startTimer2();
-
-    static unsigned long yRecoverMillis = timer1_millis_get();
-    if (timer1_millis_get() - yRecoverMillis >= 3000) {
-      stopTimer2();
-      yRecover = false;
-      yUpLimit = false;
-      yDownLimit = false;
+    unsigned long yRecoverMillis = timer1_millis_get();
+    while (timer1_millis_get() - yRecoverMillis <= 2000) {
+      true;
     }
-    
-    return;
+    stopTimer2();
+    yRecover = false;
+    yUpLimit = false;
+    yDownLimit = false;
+    scan = true;
   }
 
   unsigned long curr_millis = timer1_millis_get();
 
-  if (curr_millis - millis_without_coords >= 900) {
+  if ((curr_millis - millis_without_coords >= 900) && (scan == false)) {
     stopTimer0();
     stopTimer2();
+    digitalWrite(yDirPin, LOW);
+    setyFreq(150);
+    startTimer2();
   }
+
+  // if (scan == true) {
+  //   digitalWrite(xDirPin, HIGH);
+  //   setxFreq(50);
+  //   startTimer0();
+  // }
 
   // Serial input parsing
   while (Serial.available() > 0) {
@@ -206,6 +224,7 @@ void loop() {
 
       coords = "";
       millis_without_coords = curr_millis;
+      scan = false;
     } else coords += c;
   }
 
@@ -254,10 +273,6 @@ void setyFreq(int yFreq) {
 
 int xfrequency_calculator(int coord, int curr_freq, int center) {
   int target_freq = constrain(abs(coord-center) * X_CURVE_COEFFICIENT, X_FREQ_MIN, X_FREQ_MAX);
-
-  Serial.println(coord);
-  Serial.println(target_freq);
-  Serial.println(curr_freq);
 
   if (curr_freq < target_freq) {
     return constrain(curr_freq + X_ACCEL_LIMIT, X_FREQ_MIN, X_FREQ_MAX);
