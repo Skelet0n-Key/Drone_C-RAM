@@ -19,6 +19,14 @@ int xDirPin = 8;
 int yPulsePin = 11;  // Timer2 OCR2A
 int yDirPin = 10;
 
+// y-limit switches
+const int Y_UP_LIMIT_PIN = 13;
+const int Y_DOWN_LIMIT_PIN = 12;
+
+volatile bool yLimitLock = false;
+volatile bool yUpLimit = false;
+volatile bool yDownLimit = false;
+
 // ULN2003 stepper pins
 const int STEP_IN1 = 2;
 const int STEP_IN2 = 3;
@@ -108,6 +116,12 @@ void setup() {
   pinMode(yPulsePin, OUTPUT);
   pinMode(yDirPin, OUTPUT);
 
+  pinMode(Y_UP_LIMIT_PIN, INPUT_PULLUP);
+  pinMode(Y_DOWN_LIMIT_PIN, INPUT_PULLUP);
+
+  attachInterrupt(digitalPinToInterrupt(Y_UP_LIMIT_PIN), yUpLimitISR, FALLING);
+  attachInterrupt(digitalPinToInterrupt(Y_DOWN_LIMIT_PIN), yDownLimitISR, FALLING);
+
   for(int i = STEP_IN1; i <= STEP_IN4; i++) pinMode(i, OUTPUT);
   
   Serial.begin(115200);
@@ -128,7 +142,44 @@ unsigned long timer1_millis_get() {
   return m;
 }
 
+void yUpLimitISR() {
+  yRecover = true;
+  yUpLimit = true;
+  yDownLimit = false;
+}
+
+void yDownLimitISR() {
+  yRecover = true;
+  yUpLimit = false;
+  yDownLimit = true;
+}
+
 void loop() {
+  if (yRecover) {
+    stopTimer0();
+    stopTimer2();
+
+    if (yUpLimit) {
+      digitalWrite(yDirPin, LOW);
+    }
+    if (yDownLimit) {
+      digitalWrite(yDirPin, HIGH);
+    }
+
+    setyFreq(50);
+    startTimer2();
+
+    static unsigned long yRecoverMillis = timer1_millis_get();
+    if (timer1_millis_get() - yRecoverMillis >= 3000) {
+      stopTimer2();
+      yRecover = false;
+      yUpLimit = false;
+      yDownLimit = false;
+    }
+    
+    return;
+  }
+
   unsigned long curr_millis = timer1_millis_get();
 
   if (curr_millis - millis_without_coords >= 900) {
@@ -228,6 +279,9 @@ int yfrequency_calculator(int coord, int curr_freq, int center) {
 }
 
 void set_dir(char axis, int center, int coord) {
+  // Hard ovverride if one of the hardware interrupts are triggered
+  if (yLimitLock) return;
+
   if (axis == 'x') {
     if (coord - center > X_DEADZONE) {
       startTimer0();
