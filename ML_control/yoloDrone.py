@@ -37,38 +37,72 @@ def parse_detections(metadata: dict):
 
     np_outputs = imx500.get_outputs(metadata, add_batch=True)
     input_w, input_h = imx500.get_input_size()
+
     if np_outputs is None:
         return last_detections
+
+    # --- Debug: show shapes and basic stats once per frame ---
+    try:
+        print("=== IMX500 OUTPUTS ===")
+        print(" num outputs:", len(np_outputs))
+        for i, o in enumerate(np_outputs):
+            print(f"  out[{i}]: shape={o.shape}, min={o.min():.4f}, max={o.max():.4f}")
+    except Exception as e:
+        print("debug print failed:", e)
+
+    # --- Normalize into (boxes, scores, classes) arrays ---
+
     if intrinsics.postprocess == "nanodet":
-        boxes, scores, classes = \
-            postprocess_nanodet_detection(outputs=np_outputs[0], conf=threshold, iou_thres=iou,
-                                          max_out_dets=max_detections)[0]
+        # Let the helper do the heavy lifting. Use conf=0.0 so we see *all* scores,
+        # and apply our own threshold later.
+        boxes, scores, classes = postprocess_nanodet_detection(
+            outputs=np_outputs[0],
+            conf=0.0,
+            iou_thres=iou,
+            max_out_dets=max_detections
+        )[0]
+
         from picamera2.devices.imx500.postprocess import scale_boxes
         boxes = scale_boxes(boxes, 1, 1, input_h, input_w, False, False)
+
     else:
-        boxes, scores, classes = np_outputs[0][0], np_outputs[1][0], np_outputs[2][0]
+        # Generic 3-head detection: [boxes, scores, classes]
+        raw_boxes = np_outputs[0][0]
+        raw_scores = np_outputs[1][0]
+        raw_classes = np_outputs[2][0]
+
+        boxes = raw_boxes.astype(np.float32).copy()
+        scores = raw_scores.astype(np.float32).copy()
+        classes = raw_classes.astype(np.int32).copy()
+
         if bbox_normalization:
-            boxes = boxes / input_h
+            # Inputs are usually square (e.g. 320x320) so /input_h is OK.
+            boxes = boxes / float(input_h)
 
         if bbox_order == "xy":
+            # Convert (x0, y0, x1, y1) -> (y0, x0, y1, x1)
             boxes = boxes[:, [1, 0, 3, 2]]
-        boxes = np.array_split(boxes, 4, axis=1)
-        boxes = zip(*boxes)
 
-    detections_raw = list(zip(boxes, scores, classes))
+    # --- Build raw detection tuples in a safe way ---
+    detections_raw = []
+    num = min(len(boxes), len(scores), len(classes))
+    for i in range(num):
+        detections_raw.append((boxes[i], float(scores[i]), int(classes[i])))
 
-    for box, score, category in detections_raw:
-        label_name = intrinsics.labels[int(category)]
-        print("RAW DETECTION:", "cat_idx=", int(category), "label=", label_name,
-              "score=", float(score))
+    # --- Debug: show first few raw detections ---
+    for i, (box, score, category) in enumerate(detections_raw[:5]):
+        label_name = intrinsics.labels[category] if intrinsics.labels else str(category)
+        print(f"RAW DETECTION {i}: cls={category} ({label_name}), score={score:.3f}, box={box}")
 
+    # --- Apply confidence threshold and convert to Detection objects ---
     last_detections = [
         Detection(box, category, score, metadata)
         for box, score, category in detections_raw
-        if score > threshold
+        if score >= threshold
     ]
 
     return last_detections
+
 
 
 @lru_cache

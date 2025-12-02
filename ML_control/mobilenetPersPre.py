@@ -12,7 +12,12 @@ from picamera2 import MappedArray, Picamera2
 from picamera2.devices import IMX500
 from picamera2.devices.imx500 import (NetworkIntrinsics,
                                       postprocess_nanodet_detection)
+#smoothing
+last_detections = []
+smoothed_target = None
+alpha = 0.3  # smoothing factor: 0.0 = no update, 1.0 = no smoothing
 
+#prediction
 kf = cv2.KalmanFilter(4, 2)  # 4 state variables (x, y, dx, dy), 2 measurements (x, y)
 kf.measurementMatrix = np.array([[1,0,0,0],[0,1,0,0]], np.float32)
 kf.transitionMatrix = np.array([[1,0,1,0],[0,1,0,1],[0,0,1,0],[0,0,0,1]], np.float32)
@@ -158,8 +163,23 @@ def get_args():
     return parser.parse_args()
     
 def predict_lead(target, lead_frames=5):
+
+    global smoothed_target
+    x, y = map(int, target.split(','))
+
+    if smoothed_target is None:
+        smoothed_target = (x, y)
+    else:
+        # EMA smoothing
+        smoothed_target = (int(alpha * x + (1 - alpha) * smoothed_target[0]), int(alpha * y + (1 - alpha) * smoothed_target[1]))
+        
+    smoothed_target = smoothed_target[0],(smoothed_target[1]-20) #testing purposes offset for people center mass.
+
+    
+
+
     # Parse measurement
-    x, y = map(float, target.split(','))
+    x, y = float(smoothed_target[0]), float(smoothed_target[1])#change to get x,y from smoothing
     measurement = np.array([[x], [y]], np.float32)
     
     # Correct Kalman with current measurement
