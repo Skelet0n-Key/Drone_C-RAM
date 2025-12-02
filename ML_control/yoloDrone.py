@@ -56,7 +56,7 @@ def parse_detections(metadata: dict):
         boxes = zip(*boxes)
 
     '''ADDED filter for desired class'''
-    ALLOWED_CLASSES = {"person"} #filter class
+    ALLOWED_CLASSES = {"drones"}
 
     last_detections = [
         Detection(box, category, score, metadata)
@@ -132,7 +132,7 @@ def draw_detections(request, stream="main"):
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str, help="Path of the model",
-                        default="/usr/share/imx500-models/imx500_network_ssd_mobilenetv2_fpnlite_320x320_pp.rpk") #ML model file path
+                        default="/home/blowyoshihsmooveoff/Drone_C-RAM/ML_models/best_imx_model/drone_model/network.rpk")
     parser.add_argument("--fps", type=int, help="Frames per second")
     parser.add_argument("--bbox-normalization", action=argparse.BooleanOptionalAction, help="Normalize bbox")
     parser.add_argument("--bbox-order", choices=["yx", "xy"], default="yx",
@@ -197,7 +197,7 @@ if __name__ == "__main__":
 
     # Defaults
     if intrinsics.labels is None:
-        with open("assets/coco_labels.txt", "r") as f: #labels file path
+        with open("/home/blowyoshihsmooveoff/Drone_C-RAM/ML_models/best_imx_model/labels.txt", "r") as f:
             intrinsics.labels = f.read().splitlines()
     intrinsics.update_with_defaults()
 

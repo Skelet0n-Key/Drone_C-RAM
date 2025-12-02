@@ -1,0 +1,10 @@
+/home/blowyoshihsmooveoff/Drone_C-RAM/ML_models/best_imx_model/drone_model/network.rpk
+
+
+old: /usr/share/imx500-models/imx500_network_ssd_mobilenetv2_fpnlite_320x320_pp.rpk
+
+line 200
+old: assets/coco_labels.txt
+new: /home/blowyoshihsmooveoff/Drone_C-RAM/ML_models/best_imx_model/labels.txt
+	
+filter: person
