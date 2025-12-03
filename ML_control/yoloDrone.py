@@ -145,11 +145,11 @@ def draw_detections(request, stream="main"):
             # original detection center
             center_x, center_y = x + w // 2, y + h // 2
 
-        """
+            """
             # debug: -----------------------------------------------------------
             h_img, w_img, _ = m.array.shape
             print(f"BOX PIXELS: x={x}, y={y}, w={w}, h={h}, frame={w_img}x{h_img}")
-        """
+            """
 
             # Send to UART & get smoothed coordinates
             smoothed_x, smoothed_y = predict_lead(f"{center_x},{center_y}")
