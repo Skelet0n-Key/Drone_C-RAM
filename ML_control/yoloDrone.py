@@ -14,6 +14,9 @@ from picamera2.devices.imx500 import NetworkIntrinsics, postprocess_nanodet_dete
 last_detections = []
 smoothed_target = None
 alpha = 0.3  # smoothing factor: 0.0 = no update, 1.0 = no smoothing
+missed_frames = 0
+MAX_MISSED = 5   # hold last box for up to 3 frames
+
 
 
 class Detection:
@@ -94,13 +97,29 @@ def parse_detections(metadata: dict):
         )
     """
     # --- Apply confidence threshold and convert to Detection objects ---
-    last_detections = [
+        global last_detections, missed_frames
+
+    # Detections that pass threshold this frame
+    current = [
         Detection(box, category, score, metadata)
         for box, score, category in detections_raw
         if score >= threshold
     ]
 
+    if current:
+        # Got at least one good detection: reset hold
+        last_detections = current
+        missed_frames = 0
+    else:
+        # No detection this frame – optionally keep last one for a bit
+        if last_detections and missed_frames < MAX_MISSED:
+            missed_frames += 1
+            # keep last_detections as-is
+        else:
+            last_detections = []
+
     return last_detections
+
 
 
 @lru_cache
@@ -213,7 +232,7 @@ def get_args():
         help="Set bbox order yx -> (y0, x0, y1, x1) xy -> (x0, y0, x1, y1)",
     )
     parser.add_argument(
-        "--threshold", type=float, default=0.45, help="Detection threshold"
+        "--threshold", type=float, default=0.35, help="Detection threshold"
     )  # confidence threshold
     parser.add_argument("--iou", type=float, default=0.65, help="Set iou threshold")
     parser.add_argument(
