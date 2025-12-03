@@ -9,13 +9,11 @@ import numpy as np
 
 from picamera2 import MappedArray, Picamera2
 from picamera2.devices import IMX500
-from picamera2.devices.imx500 import (NetworkIntrinsics,
-                                      postprocess_nanodet_detection)
+from picamera2.devices.imx500 import NetworkIntrinsics, postprocess_nanodet_detection
 
 last_detections = []
 smoothed_target = None
 alpha = 0.3  # smoothing factor: 0.0 = no update, 1.0 = no smoothing
-
 
 
 class Detection:
@@ -56,13 +54,11 @@ def parse_detections(metadata: dict):
         # Let the helper do the heavy lifting. Use conf=0.0 so we see *all* scores,
         # and apply our own threshold later.
         boxes, scores, classes = postprocess_nanodet_detection(
-            outputs=np_outputs[0],
-            conf=0.0,
-            iou_thres=iou,
-            max_out_dets=max_detections
+            outputs=np_outputs[0], conf=0.0, iou_thres=iou, max_out_dets=max_detections
         )[0]
 
         from picamera2.devices.imx500.postprocess import scale_boxes
+
         boxes = scale_boxes(boxes, 1, 1, input_h, input_w, False, False)
 
     else:
@@ -92,7 +88,9 @@ def parse_detections(metadata: dict):
     # --- Debug: show first few raw detections ---
     for i, (box, score, category) in enumerate(detections_raw[:5]):
         label_name = intrinsics.labels[category] if intrinsics.labels else str(category)
-        print(f"RAW DETECTION {i}: cls={category} ({label_name}), score={score:.3f}, box={box}")
+        print(
+            f"RAW DETECTION {i}: cls={category} ({label_name}), score={score:.3f}, box={box}"
+        )
 
     # --- Apply confidence threshold and convert to Detection objects ---
     last_detections = [
@@ -102,7 +100,6 @@ def parse_detections(metadata: dict):
     ]
 
     return last_detections
-
 
 
 @lru_cache
@@ -125,19 +122,21 @@ def draw_detections(request, stream="main"):
             x, y, w, h = detection.box
             """ call function here """
             # original detection center
-            center_x, center_y = x + w//2, y + h//2
-    
+            center_x, center_y = x + w // 2, y + h // 2
+
             # Send to UART & get smoothed coordinates
             smoothed_x, smoothed_y = predict_lead(f"{center_x},{center_y}")
-    
+
             # Draw smoothed point (green)
             cv2.circle(m.array, (smoothed_x, smoothed_y), 5, (0, 255, 0), -1)
             """ draw circle on box """
-            cv2.circle(m.array, (x + w//2, y + h//2), 5, (255, 0, 0), -1)
+            cv2.circle(m.array, (x + w // 2, y + h // 2), 5, (255, 0, 0), -1)
             label = f"{labels[int(detection.category)]} ({detection.conf:.2f})"
 
             # Calculate text size and position
-            (text_width, text_height), baseline = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
+            (text_width, text_height), baseline = cv2.getTextSize(
+                label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1
+            )
             text_x = x + 5
             text_y = y + 15
 
@@ -145,18 +144,27 @@ def draw_detections(request, stream="main"):
             overlay = m.array.copy()
 
             # Draw the background rectangle on the overlay
-            cv2.rectangle(overlay,
-                          (text_x, text_y - text_height),
-                          (text_x + text_width, text_y + baseline),
-                          (255, 255, 255),  # Background color (white)
-                          cv2.FILLED)
+            cv2.rectangle(
+                overlay,
+                (text_x, text_y - text_height),
+                (text_x + text_width, text_y + baseline),
+                (255, 255, 255),  # Background color (white)
+                cv2.FILLED,
+            )
 
             alpha = 0.30
             cv2.addWeighted(overlay, alpha, m.array, 1 - alpha, 0, m.array)
 
             # Draw text on top of the background
-            cv2.putText(m.array, label, (text_x, text_y),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+            cv2.putText(
+                m.array,
+                label,
+                (text_x, text_y),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.5,
+                (0, 0, 255),
+                1,
+            )
 
             # Draw detection box
             cv2.rectangle(m.array, (x, y), (x + w, y + h), (0, 255, 0, 0), thickness=2)
@@ -164,56 +172,98 @@ def draw_detections(request, stream="main"):
         if intrinsics.preserve_aspect_ratio:
             b_x, b_y, b_w, b_h = imx500.get_roi_scaled(request)
             color = (255, 0, 0)  # red
-            cv2.putText(m.array, "ROI", (b_x + 5, b_y + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
+            cv2.putText(
+                m.array,
+                "ROI",
+                (b_x + 5, b_y + 15),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.5,
+                color,
+                1,
+            )
             cv2.rectangle(m.array, (b_x, b_y), (b_x + b_w, b_y + b_h), (255, 0, 0, 0))
 
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, help="Path of the model",
-                        default="/home/blowyoshihsmooveoff/Drone_C-RAM/ML_models/best_imx_model/drone_model/network.rpk") # model path
+    parser.add_argument(
+        "--model",
+        type=str,
+        help="Path of the model",
+        default="/home/blowyoshihsmooveoff/Drone_C-RAM/ML_models/best_imx_model/drone_model/network.rpk",
+    )  # model path
     parser.add_argument("--fps", type=int, help="Frames per second")
-    parser.add_argument("--bbox-normalization", action=argparse.BooleanOptionalAction, help="Normalize bbox")
-    parser.add_argument("--bbox-order", choices=["yx", "xy"], default="yx",
-                        help="Set bbox order yx -> (y0, x0, y1, x1) xy -> (x0, y0, x1, y1)")
-    parser.add_argument("--threshold", type=float, default=0.45, help="Detection threshold") # confidence threshold
+    parser.add_argument(
+        "--bbox-normalization",
+        action=argparse.BooleanOptionalAction,
+        help="Normalize bbox",
+    )
+    parser.add_argument(
+        "--bbox-order",
+        choices=["yx", "xy"],
+        default="yx",
+        help="Set bbox order yx -> (y0, x0, y1, x1) xy -> (x0, y0, x1, y1)",
+    )
+    parser.add_argument(
+        "--threshold", type=float, default=0.45, help="Detection threshold"
+    )  # confidence threshold
     parser.add_argument("--iou", type=float, default=0.65, help="Set iou threshold")
-    parser.add_argument("--max-detections", type=int, default=10, help="Set max detections")
-    parser.add_argument("--ignore-dash-labels", action=argparse.BooleanOptionalAction, help="Remove '-' labels ")
-    parser.add_argument("--postprocess", choices=["", "nanodet"],
-                        default=None, help="Run post process of type")
-    parser.add_argument("-r", "--preserve-aspect-ratio", action=argparse.BooleanOptionalAction,
-                        help="preserve the pixel aspect ratio of the input tensor")
-    parser.add_argument("--labels", type=str,
-                        help="Path to the labels file")
-    parser.add_argument("--print-intrinsics", action="store_true",
-                        help="Print JSON network_intrinsics then exit")
+    parser.add_argument(
+        "--max-detections", type=int, default=10, help="Set max detections"
+    )
+    parser.add_argument(
+        "--ignore-dash-labels",
+        action=argparse.BooleanOptionalAction,
+        help="Remove '-' labels ",
+    )
+    parser.add_argument(
+        "--postprocess",
+        choices=["", "nanodet"],
+        default=None,
+        help="Run post process of type",
+    )
+    parser.add_argument(
+        "-r",
+        "--preserve-aspect-ratio",
+        action=argparse.BooleanOptionalAction,
+        help="preserve the pixel aspect ratio of the input tensor",
+    )
+    parser.add_argument("--labels", type=str, help="Path to the labels file")
+    parser.add_argument(
+        "--print-intrinsics",
+        action="store_true",
+        help="Print JSON network_intrinsics then exit",
+    )
     return parser.parse_args()
-    
+
 
 def predict_lead(target):
     global smoothed_target
-    x, y = map(int, target.split(','))
+    x, y = map(int, target.split(","))
 
     if smoothed_target is None:
         smoothed_target = (x, y)
     else:
         # EMA smoothing
-        smoothed_target = (int(alpha * x + (1 - alpha) * smoothed_target[0]), int(alpha * y + (1 - alpha) * smoothed_target[1]))
-        
-    #smoothed_target = smoothed_target[0],(smoothed_target[1]-20) #testing purposes offset for people center mass.
+        smoothed_target = (
+            int(alpha * x + (1 - alpha) * smoothed_target[0]),
+            int(alpha * y + (1 - alpha) * smoothed_target[1]),
+        )
+
+    # smoothed_target = smoothed_target[0],(smoothed_target[1]-20) #testing purposes offset for people center mass.
     smoothed_str = f"{smoothed_target[0]},{smoothed_target[1]}\n"
-    ser.write(smoothed_str.encode('utf-8'))#serial write happens here
-    print('SENT over UART:', smoothed_str.strip())
+    ser.write(smoothed_str.encode("utf-8"))  # serial write happens here
+    print("SENT over UART:", smoothed_str.strip())
 
     # Return smoothed coordinates for drawing
     return smoothed_target
 
+
 if __name__ == "__main__":
     """Uart serial comm initialization"""
-    ser = serial.Serial('/dev/serial0', 115200, timeout=1) #115200
-    time.sleep(2)#Delay for setup
-    
+    ser = serial.Serial("/dev/serial0", 115200, timeout=1)  # 115200
+    time.sleep(2)  # Delay for setup
+
     args = get_args()
 
     # This must be called before instantiation of Picamera2
@@ -228,24 +278,45 @@ if __name__ == "__main__":
 
     # Override intrinsics from args
     for key, value in vars(args).items():
-        if key == 'labels' and value is not None:
-            with open(value, 'r') as f:
+        if key == "labels" and value is not None:
+            with open(value, "r") as f:
                 intrinsics.labels = f.read().splitlines()
         elif hasattr(intrinsics, key) and value is not None:
             setattr(intrinsics, key, value)
 
     # Defaults
     if intrinsics.labels is None:
-        with open("/home/blowyoshihsmooveoff/Drone_C-RAM/ML_models/best_imx_model/labels.txt", "r") as f: #labels path
+        with open(
+            "/home/blowyoshihsmooveoff/Drone_C-RAM/ML_models/best_imx_model/labels.txt",
+            "r",
+        ) as f:  # labels path
             intrinsics.labels = f.read().splitlines()
     intrinsics.update_with_defaults()
+
+    # FORCE CORRECT BBOX NORMALISATION
+    # model is outputting box coords in 0..input_h/input_w, not 0..1,
+    # normalise before convert_inference_coords uses them.
+    intrinsics.bbox_normalization = True
+
+    # debug:
+    print(
+        "DEBUG intrinsics:",
+        "bbox_normalization =",
+        intrinsics.bbox_normalization,
+        "bbox_order =",
+        intrinsics.bbox_order,
+        "postprocess =",
+        intrinsics.postprocess,
+    )
 
     if args.print_intrinsics:
         print(intrinsics)
         exit()
 
     picam2 = Picamera2(imx500.camera_num)
-    config = picam2.create_preview_configuration(controls={"FrameRate": intrinsics.inference_rate}, buffer_count=12)
+    config = picam2.create_preview_configuration(
+        controls={"FrameRate": intrinsics.inference_rate}, buffer_count=12
+    )
 
     imx500.show_network_fw_progress_bar()
     picam2.start(config, show_preview=True)
