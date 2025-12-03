@@ -114,3 +114,68 @@ SENT over UART: 87962,50925
 SENT over UART: 90785,52351
 SENT over UART: 92762,53349
 SENT over UART: 94145,54048
+
+
+
+
+NEW RUN___________________
+=== IMX500 OUTPUTS ===
+ num outputs: 4
+  out[0]: shape=(1, 300, 4), min=0.0000, max=550.0000
+  out[1]: shape=(1, 300), min=0.0000, max=0.0000
+  out[2]: shape=(1, 300), min=0.0000, max=0.0000
+  out[3]: shape=(1, 1), min=0.0000, max=0.0000
+RAW DETECTION 0: cls=0 (drones), score=0.000, box=[0.0015625 0.7578125 0.1234375 0.859375 ]
+RAW DETECTION 1: cls=0 (drones), score=0.000, box=[0.         0.         0.03828125 0.025     ]
+RAW DETECTION 2: cls=0 (drones), score=0.000, box=[0.         0.         0.03828125 0.025     ]
+RAW DETECTION 3: cls=0 (drones), score=0.000, box=[0.         0.         0.03828125 0.025     ]
+RAW DETECTION 4: cls=0 (drones), score=0.000, box=[0.         0.         0.03828125 0.025     ]
+=== IMX500 OUTPUTS ===
+ num outputs: 4
+  out[0]: shape=(1, 300, 4), min=-0.5000, max=550.0000
+  out[1]: shape=(1, 300), min=0.0000, max=0.0000
+  out[2]: shape=(1, 300), min=0.0000, max=0.0000
+  out[3]: shape=(1, 1), min=0.0000, max=0.0000
+RAW DETECTION 0: cls=0 (drones), score=0.000, box=[0.        0.75625   0.1234375 0.859375 ]
+RAW DETECTION 1: cls=0 (drones), score=0.000, box=[-0.00078125 -0.00078125  0.0359375   0.02734375]
+RAW DETECTION 2: cls=0 (drones), score=0.000, box=[-0.00078125 -0.00078125  0.0359375   0.02734375]
+RAW DETECTION 3: cls=0 (drones), score=0.000, box=[-0.00078125 -0.00078125  0.0359375   0.02734375]
+RAW DETECTION 4: cls=0 (drones), score=0.000, box=[-0.00078125 -0.00078125  0.0359375   0.02734375]
+=== IMX500 OUTPUTS ===
+ num outputs: 4
+  out[0]: shape=(1, 300, 4), min=-8.0000, max=553.0000
+  out[1]: shape=(1, 300), min=0.0000, max=0.5000
+  out[2]: shape=(1, 300), min=0.0000, max=0.0000
+  out[3]: shape=(1, 1), min=1.0000, max=1.0000
+RAW DETECTION 0: cls=0 (drones), score=0.500, box=[0.29375  0.325    0.859375 0.803125]
+RAW DETECTION 1: cls=0 (drones), score=0.000, box=[0.        0.75625   0.121875  0.8546875]
+RAW DETECTION 2: cls=0 (drones), score=0.000, box=[0.3421875 0.3984375 0.6421875 0.615625 ]
+RAW DETECTION 3: cls=0 (drones), score=0.000, box=[0.6015625 0.48125   0.8640625 0.753125 ]
+RAW DETECTION 4: cls=0 (drones), score=0.000, box=[-0.0125     0.771875   0.1140625  0.859375 ]
+BOX PIXELS: x=207, y=140, w=306, h=271, frame=640x480
+SENT over UART: 471,191
+BOX PIXELS: x=207, y=140, w=306, h=271, frame=640x480
+SENT over UART: 437,216
+BOX PIXELS: x=207, y=140, w=306, h=271, frame=640x480
+SENT over UART: 413,233
+BOX PIXELS: x=207, y=140, w=306, h=271, frame=640x480
+SENT over UART: 397,245
+=== IMX500 OUTPUTS ===
+ num outputs: 4
+  out[0]: shape=(1, 300, 4), min=-0.5000, max=644.0000
+  out[1]: shape=(1, 300), min=0.0000, max=0.5000
+  out[2]: shape=(1, 300), min=0.0000, max=0.0000
+  out[3]: shape=(1, 1), min=1.0000, max=1.0000
+RAW DETECTION 0: cls=0 (drones), score=0.500, box=[0.35     0.290625 0.915625 0.75    ]
+RAW DETECTION 1: cls=0 (drones), score=0.000, box=[0.        0.75625   0.1234375 0.859375 ]
+RAW DETECTION 2: cls=0 (drones), score=0.000, box=[0.36875   0.384375  0.646875  0.5859375]
+RAW DETECTION 3: cls=0 (drones), score=0.000, box=[0.225    0.134375 0.96875  0.740625]
+RAW DETECTION 4: cls=0 (drones), score=0.000, box=[0.15     0.340625 0.984375 1.00625 ]
+BOX PIXELS: x=185, y=167, w=294, h=271, frame=640x480
+SENT over UART: 377,262
+BOX PIXELS: x=185, y=167, w=294, h=271, frame=640x480
+SENT over UART: 363,274
+BOX PIXELS: x=185, y=167, w=294, h=271, frame=640x480
+SENT over UART: 353,282
+BOX PIXELS: x=185, y=167, w=294, h=271, frame=640x480
+SENT over UART: 346,288
