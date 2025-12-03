@@ -39,6 +39,7 @@ def parse_detections(metadata: dict):
     if np_outputs is None:
         return last_detections
 
+    """
     # --- Debug: show shapes and basic stats once per frame ---
     try:
         print("=== IMX500 OUTPUTS ===")
@@ -47,7 +48,7 @@ def parse_detections(metadata: dict):
             print(f"  out[{i}]: shape={o.shape}, min={o.min():.4f}, max={o.max():.4f}")
     except Exception as e:
         print("debug print failed:", e)
-
+    """
     # --- Normalize into (boxes, scores, classes) arrays ---
 
     if intrinsics.postprocess == "nanodet":
@@ -84,14 +85,14 @@ def parse_detections(metadata: dict):
     num = min(len(boxes), len(scores), len(classes))
     for i in range(num):
         detections_raw.append((boxes[i], float(scores[i]), int(classes[i])))
-
+    """
     # --- Debug: show first few raw detections ---
     for i, (box, score, category) in enumerate(detections_raw[:5]):
         label_name = intrinsics.labels[category] if intrinsics.labels else str(category)
         print(
             f"RAW DETECTION {i}: cls={category} ({label_name}), score={score:.3f}, box={box}"
         )
-
+    """
     # --- Apply confidence threshold and convert to Detection objects ---
     last_detections = [
         Detection(box, category, score, metadata)
@@ -121,23 +122,22 @@ def draw_detections(request, stream="main"):
         for detection in detections:
             x, y, w, h = detection.box
 
-            # Swap axes & sizes (experimental)----------------------------------
-            x, y, w, h = y, x, h, w
-
             """ call function here """
             # original detection center
             center_x, center_y = x + w // 2, y + h // 2
 
-            # debug:
+        """
+            # debug: -----------------------------------------------------------
             h_img, w_img, _ = m.array.shape
             print(f"BOX PIXELS: x={x}, y={y}, w={w}, h={h}, frame={w_img}x{h_img}")
+        """
 
             # Send to UART & get smoothed coordinates
             smoothed_x, smoothed_y = predict_lead(f"{center_x},{center_y}")
 
             # Draw smoothed point (green)
             cv2.circle(m.array, (smoothed_x, smoothed_y), 5, (0, 255, 0), -1)
-            """ draw circle on box """
+            # draw actual point (red)
             cv2.circle(m.array, (x + w // 2, y + h // 2), 5, (255, 0, 0), -1)
             label = f"{labels[int(detection.category)]} ({detection.conf:.2f})"
 
@@ -258,12 +258,9 @@ def predict_lead(target):
             int(alpha * y + (1 - alpha) * smoothed_target[1]),
         )
 
-    # smoothed_target = smoothed_target[0],(smoothed_target[1]-20) #testing purposes offset for people center mass.
     smoothed_str = f"{smoothed_target[0]},{smoothed_target[1]}\n"
-    ser.write(smoothed_str.encode("utf-8"))  # serial write happens here
+    ser.write(smoothed_str.encode("utf-8"))
     print("SENT over UART:", smoothed_str.strip())
-
-    # Return smoothed coordinates for drawing
     return smoothed_target
 
 
@@ -300,6 +297,11 @@ if __name__ == "__main__":
         ) as f:  # labels path
             intrinsics.labels = f.read().splitlines()
     intrinsics.update_with_defaults()
+
+    # YOLO IMX export seems to output boxes as (x0, y0, x1, y1),
+    # but the intrinsics say "yx". Force "xy" so parse_detections
+    # swaps them into the canonical (y0, x0, y1, x1) for convert_inference_coords.
+    intrinsics.bbox_order = "xy"
 
     # FORCE CORRECT BBOX NORMALISATION
     # model is outputting box coords in 0..input_h/input_w, not 0..1,
