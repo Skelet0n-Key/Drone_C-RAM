@@ -120,6 +120,10 @@ def draw_detections(request, stream="main"):
     with MappedArray(request, stream) as m:
         for detection in detections:
             x, y, w, h = detection.box
+
+            # Swap axes & sizes (experimental)----------------------------------
+            x, y, w, h = y, x, h, w
+
             """ call function here """
             # original detection center
             center_x, center_y = x + w // 2, y + h // 2
