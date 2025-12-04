@@ -15,7 +15,7 @@ last_detections = []
 smoothed_target = None
 alpha = 0.3  # smoothing factor: 0.0 = no update, 1.0 = no smoothing
 missed_frames = 0
-MAX_MISSED = 5  # hold last box for up to 3 frames
+MAX_MISSED = 2  # hold last box for up to 3 frames
 
 
 class Detection:

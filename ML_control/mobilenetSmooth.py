@@ -139,7 +139,7 @@ def get_args():
                         help="Set bbox order yx -> (y0, x0, y1, x1) xy -> (x0, y0, x1, y1)")
     parser.add_argument("--threshold", type=float, default=0.55, help="Detection threshold")
     parser.add_argument("--iou", type=float, default=0.65, help="Set iou threshold")
-    parser.add_argument("--max-detections", type=int, default=10, help="Set max detections")
+    parser.add_argument("--max-detections", type=int, default=1, help="Set max detections")
     parser.add_argument("--ignore-dash-labels", action=argparse.BooleanOptionalAction, help="Remove '-' labels ")
     parser.add_argument("--postprocess", choices=["", "nanodet"],
                         default=None, help="Run post process of type")
