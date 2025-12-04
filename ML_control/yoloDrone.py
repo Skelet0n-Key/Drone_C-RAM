@@ -29,7 +29,7 @@ class Detection:
 
 def parse_detections(metadata: dict):
     """Parse the output tensor into a number of detected objects, scaled to the ISP output."""
-    global last_detections
+    global last_detections, missed_frames
     bbox_normalization = intrinsics.bbox_normalization
     bbox_order = intrinsics.bbox_order
     threshold = args.threshold
@@ -97,7 +97,6 @@ def parse_detections(metadata: dict):
         )
     """
     # --- Apply confidence threshold and convert to Detection objects ---
-        global last_detections, missed_frames
 
     # Detections that pass threshold this frame
     current = [
