@@ -233,7 +233,7 @@ def get_args():
         help="Set bbox order yx -> (y0, x0, y1, x1) xy -> (x0, y0, x1, y1)",
     )
     parser.add_argument(
-        "--threshold", type=float, default=0.30, help="Detection threshold"
+        "--threshold", type=float, default=0.48, help="Detection threshold"
     )  # confidence threshold
     parser.add_argument("--iou", type=float, default=0.65, help="Set iou threshold")
     parser.add_argument(
