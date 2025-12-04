@@ -15,8 +15,7 @@ last_detections = []
 smoothed_target = None
 alpha = 0.3  # smoothing factor: 0.0 = no update, 1.0 = no smoothing
 missed_frames = 0
-MAX_MISSED = 5   # hold last box for up to 3 frames
-
+MAX_MISSED = 5  # hold last box for up to 3 frames
 
 
 class Detection:
@@ -106,6 +105,10 @@ def parse_detections(metadata: dict):
     ]
 
     if current:
+        # keep only best-scoring detection
+        current.sort(key=lambda d: d.conf, reverse=True)
+        current = current[:1]
+
         # Got at least one good detection: reset hold
         last_detections = current
         missed_frames = 0
@@ -118,7 +121,6 @@ def parse_detections(metadata: dict):
             last_detections = []
 
     return last_detections
-
 
 
 @lru_cache
@@ -231,7 +233,7 @@ def get_args():
         help="Set bbox order yx -> (y0, x0, y1, x1) xy -> (x0, y0, x1, y1)",
     )
     parser.add_argument(
-        "--threshold", type=float, default=0.35, help="Detection threshold"
+        "--threshold", type=float, default=0.30, help="Detection threshold"
     )  # confidence threshold
     parser.add_argument("--iou", type=float, default=0.65, help="Set iou threshold")
     parser.add_argument(
