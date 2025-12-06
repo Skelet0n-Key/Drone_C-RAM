@@ -15,7 +15,7 @@ last_detections = []
 smoothed_target = None
 alpha = 0.3  # smoothing factor: 0.0 = no update, 1.0 = no smoothing
 missed_frames = 0
-MAX_MISSED = 2  # hold last box for up to 3 frames
+MAX_MISSED = 2  # hold last box for up to 2 frames
 
 
 class Detection:
@@ -42,7 +42,7 @@ def parse_detections(metadata: dict):
         return last_detections
 
     """
-    # --- Debug: show shapes and basic stats once per frame ---
+    # Debug: show shapes and basic stats once per frame
     try:
         print("=== IMX500 OUTPUTS ===")
         print(" num outputs:", len(np_outputs))
@@ -233,11 +233,11 @@ def get_args():
         help="Set bbox order yx -> (y0, x0, y1, x1) xy -> (x0, y0, x1, y1)",
     )
     parser.add_argument(
-        "--threshold", type=float, default=0.48, help="Detection threshold"
+        "--threshold", type=float, default=0.55, help="Detection threshold"
     )  # confidence threshold
     parser.add_argument("--iou", type=float, default=0.65, help="Set iou threshold")
     parser.add_argument(
-        "--max-detections", type=int, default=10, help="Set max detections"
+        "--max-detections", type=int, default=1, help="Set max detections"
     )
     parser.add_argument(
         "--ignore-dash-labels",
