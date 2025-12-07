@@ -35,6 +35,8 @@ const int STEP_IN2 = 5;
 const int STEP_IN3 = 12;
 const int STEP_IN4 = 13;
 
+int pinlist[] = {4, 5, 12, 13};
+
 const int STEPS_PER_REV = 2048;
 const int STEPS_PER_EIGHTH = STEPS_PER_REV / 2;
 
@@ -61,6 +63,7 @@ struct StepperState {
   bool stateFired = false; // has fire been triggered
 } stepper;
 
+
 // Timeout vars
 volatile unsigned long timer1_millis = 0;
 unsigned long millis_without_coords = 0;
@@ -69,7 +72,7 @@ unsigned long millis_without_coords = 0;
 const double X_CURVE_COEFFICIENT = 2;
 const int X_FREQ_MAX = 2000;
 const int X_FREQ_MIN = 31;
-const int X_ACCEL_LIMIT = 50;
+const int X_ACCEL_LIMIT = 70;
 const double Y_CURVE_COEFFICIENT = 4;
 const int Y_FREQ_MAX = 2000;
 const int Y_FREQ_MIN = 31;
@@ -77,6 +80,9 @@ const int Y_ACCEL_LIMIT = 50;
 
 const int X_DEADZONE = 20;  // true deadzone is times two
 const int Y_DEADZONE = 20;
+
+const int X_FIRE_DEADZONE = 30;
+const int Y_FIRE_DEADZONE = 30;
 
 // Function prototypes for turret control
 void stopTimer0();
@@ -118,13 +124,16 @@ void setup() {
   pinMode(yPulsePin, OUTPUT);
   pinMode(yDirPin, OUTPUT);
 
+  pinMode(4, OUTPUT);
+  pinMode(5, OUTPUT);
+  pinMode(12, OUTPUT);
+  pinMode(13, OUTPUT);
+
   pinMode(Y_UP_LIMIT_PIN, INPUT_PULLUP);
   pinMode(Y_DOWN_LIMIT_PIN, INPUT_PULLUP);
 
   attachInterrupt(digitalPinToInterrupt(Y_UP_LIMIT_PIN), yUpLimitISR, FALLING);
   attachInterrupt(digitalPinToInterrupt(Y_DOWN_LIMIT_PIN), yDownLimitISR, FALLING);
-
-  for(int i = STEP_IN1; i <= STEP_IN4; i++) pinMode(i, OUTPUT);
   
   Serial.begin(115200);
   
@@ -163,40 +172,42 @@ void yDownLimitISR() {
 
 
 void loop() {
-  if (yRecover) {
-    stopTimer0();
-    stopTimer2();
+  // Recover logic
+  // if (yRecover) {
+  //   stopTimer0();
+  //   stopTimer2();
 
-    if (yUpLimit) {
-      digitalWrite(yDirPin, LOW);
-      setyFreq(150);
-      startTimer2();
-    }
-    if (yDownLimit) {
-      digitalWrite(yDirPin, HIGH);
-      setyFreq(250);
-      startTimer2();
-    }
+  //   if (yUpLimit) {
+  //     digitalWrite(yDirPin, LOW);
+  //     setyFreq(150);
+  //     startTimer2();
+  //   }
+  //   if (yDownLimit) {
+  //     digitalWrite(yDirPin, HIGH);
+  //     setyFreq(250);
+  //     startTimer2();
+  //   }
 
-    unsigned long yRecoverMillis = timer1_millis_get();
-    while (timer1_millis_get() - yRecoverMillis <= 2000) {
-      true;
-    }
-    stopTimer2();
-    yRecover = false;
-    yUpLimit = false;
-    yDownLimit = false;
-    scan = true;
-  }
+  //   unsigned long yRecoverMillis = timer1_millis_get();
+  //   while (timer1_millis_get() - yRecoverMillis <= 2000) {
+  //     true;
+  //   }
+  //   stopTimer2();
+  //   yRecover = false;
+  //   yUpLimit = false;
+  //   yDownLimit = false;
+  //   scan = true;
+  // }
 
   unsigned long curr_millis = timer1_millis_get();
 
-  if ((curr_millis - millis_without_coords >= 900) && (scan == false)) {
+  // Timeout logic
+  if ((curr_millis - millis_without_coords >= 600) && (scan == false)) {
     stopTimer0();
     stopTimer2();
-    digitalWrite(yDirPin, LOW);
-    setyFreq(150);
-    startTimer2();
+    // digitalWrite(yDirPin, LOW);
+    // setyFreq(150);
+    // startTimer2();
   }
 
   // if (scan == true) {
@@ -213,11 +224,8 @@ void loop() {
       x = coords.substring(0, commaIndex).toInt();
       y = coords.substring(commaIndex + 1).toInt();
 
-      set_dir('x', centerX, x);
-      set_dir('y', centerY, y);
-
-      xFreq = xfrequency_calculator(x, xFreq, centerX);
-      yFreq = yfrequency_calculator(y, yFreq, centerY);
+      xFreq = x_controller(x, centerX, xFreq);
+      yFreq = y_controller(y, centerY, yFreq);
 
       setxFreq(xFreq);
       setyFreq(yFreq);
@@ -227,10 +235,9 @@ void loop() {
       scan = false;
     } else coords += c;
   }
-
-  // Check if turret is in dead zone
+  
   bool xDead = abs(x - centerX) <= 40;
-  bool yDead = abs(y - centerY) <= 60;
+  bool yDead = abs(y - centerY) <= 40;
 
   if (xDead && yDead) {
     // Fire when in dead zone
@@ -242,6 +249,7 @@ void loop() {
 
   // Non-blocking stepper update
   updateStepper();
+
 }
 
 // timer and frequency functions
@@ -271,52 +279,135 @@ void setyFreq(int yFreq) {
   OCR2A = (F_CPU / (2UL * 1024UL * (unsigned long)yFreq)) - 1;
 }
 
-int xfrequency_calculator(int coord, int curr_freq, int center) {
-  int target_freq = constrain(abs(coord-center) * X_CURVE_COEFFICIENT, X_FREQ_MIN, X_FREQ_MAX);
+int x_controller(int coord, int center, int curr_freq) {
+  int distance = coord - center;
+  int target_freq = constrain(abs(distance) * X_CURVE_COEFFICIENT, X_FREQ_MIN, X_FREQ_MAX);
 
-  if (curr_freq < target_freq) {
-    return constrain(curr_freq + X_ACCEL_LIMIT, X_FREQ_MIN, X_FREQ_MAX);
-  } else if (curr_freq > target_freq) {
-    return constrain(curr_freq - X_ACCEL_LIMIT, X_FREQ_MIN, X_FREQ_MAX);
-  }
-  return curr_freq;
-}
+ // ====== TRAVELLING POSITIVE ======
 
-int yfrequency_calculator(int coord, int curr_freq, int center) {
-  int target_freq = constrain(abs(coord-center) * Y_CURVE_COEFFICIENT, Y_FREQ_MIN, Y_FREQ_MAX);
-
-  if (curr_freq < target_freq) {
-    return constrain(curr_freq + Y_ACCEL_LIMIT, Y_FREQ_MIN, Y_FREQ_MAX);
-  } else if (curr_freq > target_freq) {
-    return constrain(curr_freq - Y_ACCEL_LIMIT, Y_FREQ_MIN, Y_FREQ_MAX);
-  }
-  return curr_freq;
-}
-
-void set_dir(char axis, int center, int coord) {
-  // Hard ovverride if one of the hardware interrupts are triggered
-  if (yLimitLock) return;
-
-  if (axis == 'x') {
-    if (coord - center > X_DEADZONE) {
+  if (digitalRead(xDirPin) == LOW) {
+    if (distance > X_DEADZONE) {  // normal behavior: accel/decel based on target freq, we're already travelling in the right direction
+      if (curr_freq < target_freq) {
+        startTimer0();
+        digitalWrite(xDirPin, LOW);
+        return constrain(curr_freq + X_ACCEL_LIMIT, X_FREQ_MIN, X_FREQ_MAX);
+      } else if (curr_freq > target_freq) {
+        startTimer0();
+        digitalWrite(xDirPin, LOW);
+        return constrain(curr_freq - X_ACCEL_LIMIT, X_FREQ_MIN, X_FREQ_MAX);
+      }
       startTimer0();
       digitalWrite(xDirPin, LOW);
-    } else if (coord - center < -1*X_DEADZONE) {
+      return curr_freq;
+    } else if (distance < -1*X_DEADZONE) {  // dir is positive and we are travelling in the wrong direction; turn around
+      if (curr_freq == X_FREQ_MIN) {  // end case: we've decelerated as much as we can, now we can turn around
+        digitalWrite(xDirPin, HIGH);
+        startTimer0();
+        return curr_freq;
+      }
+      startTimer0();
+      digitalWrite(xDirPin, LOW);
+      return constrain(curr_freq - X_ACCEL_LIMIT, X_FREQ_MIN, X_FREQ_MAX);  // decel
+    } else {  // We're in the deadzone: halt
+      stopTimer0();
+      return X_FREQ_MIN;
+    }
+
+   // ====== TRAVELLING NEGATIVE ======
+
+  } else {
+    if (distance > X_DEADZONE) {  // we need to turn around if this is true
+      if (curr_freq == X_FREQ_MIN) {
+        startTimer0();
+        digitalWrite(xDirPin, LOW);
+        return curr_freq;
+      }
       startTimer0();
       digitalWrite(xDirPin, HIGH);
-    } else {
+      return constrain(curr_freq - X_ACCEL_LIMIT, X_FREQ_MIN, X_FREQ_MAX);  // decel
+    } else if (distance < -1*X_DEADZONE) {  // normal behavior, accel/decel based on target frequency
+      if (curr_freq < target_freq) {
+        startTimer0();
+        digitalWrite(xDirPin, HIGH);
+        return constrain(curr_freq + X_ACCEL_LIMIT, X_FREQ_MIN, X_FREQ_MAX);
+      } else if (curr_freq > target_freq) {
+        startTimer0();
+        digitalWrite(xDirPin, HIGH);
+        return constrain(curr_freq - X_ACCEL_LIMIT, X_FREQ_MIN, X_FREQ_MAX);
+      }
+      startTimer0();
+      digitalWrite(xDirPin, HIGH);
+      return curr_freq;
+    } else {  // in deadzone, halt
       stopTimer0();
-    }
-  } else if (axis == 'y') {
-    if (coord - center > Y_DEADZONE) {
+      return X_FREQ_MIN;
+    } 
+  }
+}
+
+int y_controller(int coord, int center, int curr_freq) {
+  int distance = coord - center;
+  int target_freq = constrain(abs(distance) * Y_CURVE_COEFFICIENT, Y_FREQ_MIN, Y_FREQ_MAX);
+
+ // ====== TRAVELLING POSITIVE ======
+
+  if (digitalRead(yDirPin) == LOW) {
+    if (distance > Y_DEADZONE) {  // normal behavior: accel/decel based on target freq, we're already travelling in the right direction
+      if (curr_freq < target_freq) {
+        startTimer2();
+        digitalWrite(yDirPin, LOW);
+        return constrain(curr_freq + Y_ACCEL_LIMIT, Y_FREQ_MIN, Y_FREQ_MAX);
+      } else if (curr_freq > target_freq) {
+        startTimer2();
+        digitalWrite(yDirPin, LOW);
+        return constrain(curr_freq - Y_ACCEL_LIMIT, Y_FREQ_MIN, Y_FREQ_MAX);
+      }
       startTimer2();
       digitalWrite(yDirPin, LOW);
-    } else if (coord - center < -1*Y_DEADZONE) {
+      return curr_freq;
+    } else if (distance < -1*Y_DEADZONE) {  // dir is positive and we are travelling in the wrong direction; turn around
+      if (curr_freq == Y_FREQ_MIN) {  // end case: we've decelerated as much as we can, now we can turn around
+        digitalWrite(yDirPin, HIGH);
+        startTimer2();
+        return curr_freq;
+      }
+      startTimer2();
+      digitalWrite(yDirPin, LOW);
+      return constrain(curr_freq - Y_ACCEL_LIMIT, Y_FREQ_MIN, Y_FREQ_MAX);  // decel
+    } else {  // We're in the deadzone: halt
+      stopTimer2();
+      return Y_FREQ_MIN;
+    }
+
+   // ====== TRAVELLING NEGATIVE ======
+
+  } else {
+    if (distance > Y_DEADZONE) {  // we need to turn around if this is true
+      if (curr_freq == Y_FREQ_MIN) {
+        startTimer2();
+        digitalWrite(yDirPin, LOW);
+        return curr_freq;
+      }
       startTimer2();
       digitalWrite(yDirPin, HIGH);
-    } else {
+      return constrain(curr_freq - Y_ACCEL_LIMIT, Y_FREQ_MIN, Y_FREQ_MAX);  // decel
+    } else if (distance < -1*Y_DEADZONE) {  // normal behavior, accel/decel based on target frequency
+      if (curr_freq < target_freq) {
+        startTimer2();
+        digitalWrite(yDirPin, HIGH);
+        return constrain(curr_freq + Y_ACCEL_LIMIT, Y_FREQ_MIN, Y_FREQ_MAX);
+      } else if (curr_freq > target_freq) {
+        startTimer2();
+        digitalWrite(yDirPin, HIGH);
+        return constrain(curr_freq - Y_ACCEL_LIMIT, Y_FREQ_MIN, Y_FREQ_MAX);
+      }
+      startTimer2();
+      digitalWrite(yDirPin, HIGH);
+      return curr_freq;
+    } else {  // in deadzone, halt
       stopTimer2();
-    }
+      return Y_FREQ_MIN;
+    } 
   }
 }
 
@@ -324,11 +415,11 @@ void set_dir(char axis, int center, int coord) {
 void updateStepper() {
   if (!stepper.active) return;
 
-  unsigned long now = millis();
+  unsigned long now = timer1_millis_get();
   if (now - stepper.lastStepTime >= stepper.stepDelay) {
     stepper.currentStep = (stepper.currentStep + stepper.direction + 8) % 8;
     for (int i = 0; i < 4; i++) {
-      digitalWrite(STEP_IN1 + i, sequence[stepper.currentStep][i]);
+      digitalWrite(pinlist[i], sequence[stepper.currentStep][i]);
     }
     stepper.lastStepTime = now;
     stepper.stepsRemaining--;
