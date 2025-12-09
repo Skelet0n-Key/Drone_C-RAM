@@ -101,7 +101,7 @@ Raspberry PI:
 # Implementation
 
 ## Wiring Diagram
-
+![wiring diagram](/media/main_circuit_diagram.png)
 
 ## CAD Files
 
