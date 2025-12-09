@@ -9,9 +9,14 @@
   </a>
   <br>
   <a href="https://youtu.be/CiCFE5r0B4Y" target="_blank">
-    Watch the video on YouTube
+    Watch demo video on YouTube
+  </a>
+  <br><br>
+  <a href="https://www.youtube.com/playlist?list=PLNzJUv3sgPipa0nPbpG0y632YNqH1CYb0" target="_blank">
+    View the full playlist here
   </a>
 </p>
+
 
 
 ML vision air defense turret prototype. Inspired by C-RAM/CIWS systems. Intended to combat small drones at close range, as a last line of defense.
