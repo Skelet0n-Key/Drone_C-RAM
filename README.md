@@ -1,6 +1,9 @@
 # Project Overview
 
 **Introduction**
+
+ML vision air defense turret prototype. Inspired by C-RAM/CIWS systems. Intended to combat small drones at close range, as a last line of defense. This prototype features dual TB6600s driving yaw and pitch stepper motors to their thermal limits. 3D printer belt drive hardware allows for independent gear reduction for each axis. A Raspberry Pi 5 with locally running ML image recognition (yolov8) handles detection and sends coordinates on the screen to an Arduino via UART. The Arduino controls the stepper motors  The use of Raspberry Pi (Linux) and Arduino (bare metal C++) allows for ease of use, flexible programming, and direct real time control. The turret design accepts AR style air-soft guns via piccatinny rail.
+
 <p align="center">
   <a href="https://youtu.be/CiCFE5r0B4Y" target="_blank">
     <img src="https://img.youtube.com/vi/CiCFE5r0B4Y/maxresdefault.jpg" 
@@ -16,10 +19,6 @@
     View the full playlist here
   </a>
 </p>
-
-
-
-ML vision air defense turret prototype. Inspired by C-RAM/CIWS systems. Intended to combat small drones at close range, as a last line of defense. This prototype features dual tb6600s driving X and Y stepper motors to their thermal limits. 3d printer belt drive hardware allows for independent gear reduction for each axis. A raspberry pi 5 with locally running ML image recognition (yolov8) handles detection, and dictates PID style control on the Arduino. The use of raspberry pi (Linux) and Arduino (bare metal c++) allows for ease of use, flexible programming, and direct real time control. The turret design accepts AR style air-soft guns via piccaninny rail.
 
 
 **Challenges & solutions**
@@ -55,63 +54,7 @@ IN PROGRESS
 
 # Project Capabilities
 
-The Drone C-RAM features rotating up to 25rpm, drone detection with the Raspberry Pi AI camera, tracking / target leading capabilites, and precise motor control with a PID controller.
-
-The target-leading mechanism is based off of the target's position and speed. The basic idea is described below (pseudo code): 
-
-```c
-int x = 250;
-int y = 300;
-int dx = 0;
-int dy = 0;
-
-while (1) {
-  target(x, y);  // A target at x, y
-  x = x + dx;
-  y = y + dy;
-  if (x > 200) {  // causes the movement of the target
-    dx--;
-  } else if (x < 200) {
-    dx++;
-  }
-  if (y > 200) {
-    dy--;
-  } else if (y < 200) {
-    dy++;
-  }
-  // This crosshair leads the target by an arbitrary "10" units.
-  // This var would change if you wanted to lead the target by more or less.
-  // The crosshair currently does not take into account the movement curve
-  // of the target.
-  crosshair(x+10*dx, y+10*dy, x+10*dx, y+10*dy);
-}
-```
-<img src="Media/proposed-tracking-method.gif" alt="drawing" width="492" height="492"/>
-
-We wanted a PID controller to turn the turret smoothly. We chose an arduino uno to control the stepper motors because our TB6600s needed 5V. We made an incredibly basic implementation of a PID controller because it just needed to smooth the turret rotation. The basic idea is again below in pseudo code. The actual program in practice is more complicated because we have upper and lower bounds for our motors and timers, can't accelerate past a certain value, etc.:
-
-```c
-
-int x = 100;
-int y = 100;
-double dx = 0;
-double dy = 0;
-
-while (1) {
-  lead_target(mouseX, mouseY)  // the coords RPI5 would be sending to the arduino
-  actual_crosshair(x, y)
-  x = x + dx
-  y = y + dy
-  dx = 0.2*(mouseX-x)  // appraoches "target" at speeds as a function 
-  dy = 0.2*(mouseY-y)  // of how close it is to the target
-}
-```
-
-![pid-movement](Media/proposed-pid-controller.gif)
-
 # Hardware Components
-
-This C-RAM was not cheap. This was a project we were excited about, so we spared no expense.
 
 * (5) 5mm x 250mm 304 Stainless Steel Solid Round Rod [(+)](https://www.amazon.com/dp/B082ZNJR7D?ref=ppx_yo2ov_dt_b_fed_asin_title&th=1)
 * (12) Set Screw Collars [(+)](https://www.amazon.com/dp/B0F9P5CNSL?ref=ppx_yo2ov_dt_b_fed_asin_title&th=1)
