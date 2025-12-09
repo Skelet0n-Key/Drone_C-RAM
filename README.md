@@ -19,7 +19,7 @@
 
 
 
-ML vision air defense turret prototype. Inspired by C-RAM/CIWS systems. Intended to combat small drones at close range, as a last line of defense.
+ML vision air defense turret prototype. Inspired by C-RAM/CIWS systems. Intended to combat small drones at close range, as a last line of defense. This prototype features dual tb6600s driving X and Y stepper motors to their thermal limits. 3d printer belt drive hardware allows for independent gear reduction for each axis. A raspberry pi 5 with locally running ML image recognition (yolov8) handles detection, and dictates PID style control on the arduino. The use of raspberry pi (linux) and arduino (bare metal c++) allows for ease of use, flexible programming, and direct real time control. The turret design accepts AR style airsoft guns via picatinny rail. 
 
 **Challenges & solutions**
 - Learning to interface with the raspberry pi AI cam with integrated IMX500 ASIC to run ML locally.
