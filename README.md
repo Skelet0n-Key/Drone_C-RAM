@@ -1,6 +1,13 @@
 # Project Overview
 
 **Introduction**
+<p align="center">
+  <a href="https://youtu.be/CiCFE5r0B4Y" target="_blank">
+    <img src="https://img.youtube.com/vi/CiCFE5r0B4Y/maxresdefault.jpg" 
+         alt="YouTube Video Thumbnail" 
+         style="width:100%; max-width:600px;">
+  </a>
+</p>
 
 ML vision air defense turret prototype. Inspired by C-RAM/CIWS systems. Intended to combat small drones at close range, as a last line of defense.
 
