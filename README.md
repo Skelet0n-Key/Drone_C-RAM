@@ -41,11 +41,16 @@ IN PROGRESS
 - Finished printing and received all parts to build the project (10/20/25)
 - Project assembled (10/22/25)
 - Motor control working (10/29/25)
-- PID controller implemented, motor control refined ()
-- Turret locking on people ()
-- AI trained on drones ()
+- PID controller implemented, motor control refined (11/2/25)
+- Turret locking on people (11/5/25)
+- AI trained on drones (12/4/25)
 
 **Testing and Results**
+- Ssd_mobilenet_v2 general ML model delivering exceptional results when filtered to detect people only.
+- Custom yolov8 model trained on generic publc dataset delivering mediocre results. Detection spotty, drops frames, slow. Better dataset needed.
+- Turret holds acceptable accuracy and is fast with good ML model
+- Hard stop switches too sensitive, vibration from firing causes them to trip, recalibrating turret mid firing.
+- Initial field test, 2 confirmed hits on drone. 
 
 
 # Project Capabilities
