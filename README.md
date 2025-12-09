@@ -9,7 +9,7 @@
   </a>
   <br>
   <a href="https://youtu.be/CiCFE5r0B4Y" target="_blank">
-    ▶️ Click here to watch the video on YouTube
+    Watch the video on YouTube
   </a>
 </p>
 
