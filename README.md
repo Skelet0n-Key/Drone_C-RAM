@@ -40,6 +40,7 @@ Inspired by C-RAM/CIWS systems, an embedded systems semester-long team project w
 - PID controller implemented, motor control refined (11/2/25)
 - Turret locking on people (11/5/25)
 - AI trained on drones (12/4/25)
+- First field tests (12/6/25)
 
 **Testing and Results**
 - Ssd_mobilenet_v2 general ML model delivering exceptional results when filtered to detect people only.
