@@ -139,12 +139,20 @@ def draw_detections(request, stream="main"):
         return
     labels = get_labels()
     with MappedArray(request, stream) as m:
-        # If no detections, send center of image
-        if len(detections) == 0:
-            #moothed_x, smoothed_y = predict_lead(f"{320},{240}")
-            smoothed_str = "320,240\n"
-            ser.write(smoothed_str.encode("utf-8"))
-            print("CENTER SENT over UART:", smoothed_str.strip())
+
+        # Draw center crosshair
+        h_img, w_img, _ = m.array.shape
+        cx, cy = w_img // 2, h_img // 2
+        L = 12
+        cv2.line(m.array, (cx - L, cy), (cx + L, cy), (255, 255, 255), 2)
+        cv2.line(m.array, (cx, cy - L), (cx, cy + L), (255, 255, 255), 2)
+
+        # # If no detections, send center of image
+        # if len(detections) == 0:
+        #     #moothed_x, smoothed_y = predict_lead(f"{320},{240}")
+        #     smoothed_str = "320,240\n"
+        #     ser.write(smoothed_str.encode("utf-8"))
+        #     print("CENTER SENT over UART:", smoothed_str.strip())
 
 
         for detection in detections:
