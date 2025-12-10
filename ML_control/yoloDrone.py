@@ -139,6 +139,14 @@ def draw_detections(request, stream="main"):
         return
     labels = get_labels()
     with MappedArray(request, stream) as m:
+        # If no detections, send center of image
+        if len(detections) == 0:
+            #moothed_x, smoothed_y = predict_lead(f"{320},{240}")
+            smoothed_str = "320,240\n"
+            ser.write(smoothed_str.encode("utf-8"))
+            print("CENTER SENT over UART:", smoothed_str.strip())
+
+
         for detection in detections:
             x, y, w, h = detection.box
 
@@ -151,11 +159,6 @@ def draw_detections(request, stream="main"):
             h_img, w_img, _ = m.array.shape
             print(f"BOX PIXELS: x={x}, y={y}, w={w}, h={h}, frame={w_img}x{h_img}")
             """
-            # If no detections, send center of image
-            if len(detections) == 0:
-                #moothed_x, smoothed_y = predict_lead(f"{320},{240}")
-                smoothed_str = "320,240\n"
-                ser.write(smoothed_str.encode("utf-8"))
 
             # Send to UART & get smoothed coordinates
             smoothed_x, smoothed_y = predict_lead(f"{center_x},{center_y}")
