@@ -78,8 +78,8 @@ const int Y_FREQ_MAX = 2000;
 const int Y_FREQ_MIN = 31;
 const int Y_ACCEL_LIMIT = 50;
 
-const int X_DEADZONE = 20;  // true deadzone is times two
-const int Y_DEADZONE = 20;
+const int X_DEADZONE = 15;  // true deadzone is times two
+const int Y_DEADZONE = 15;
 
 const int X_FIRE_DEADZONE = 30;
 const int Y_FIRE_DEADZONE = 30;
@@ -236,8 +236,8 @@ void loop() {
     } else coords += c;
   }
   
-  bool xDead = abs(x - centerX) <= 40;
-  bool yDead = abs(y - centerY) <= 40;
+  bool xDead = abs(x - centerX) <= X_FIRE_DEADZONE;
+  bool yDead = abs(y - centerY) <= Y_FIRE_DEADZONE;
 
   if (xDead && yDead) {
     // Fire when in dead zone
