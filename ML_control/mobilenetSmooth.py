@@ -82,6 +82,14 @@ def draw_detections(request, stream="main"):
         return
     labels = get_labels()
     with MappedArray(request, stream) as m:
+
+        # Draw center crosshair
+        h_img, w_img, _ = m.array.shape
+        cx, cy = w_img // 2, h_img // 2
+        L = 12
+        cv2.line(m.array, (cx - L, cy), (cx + L, cy), (255, 255, 255), 2)
+        cv2.line(m.array, (cx, cy - L), (cx, cy + L), (255, 255, 255), 2)
+
         for detection in detections:
             x, y, w, h = detection.box
             """ call function here """
