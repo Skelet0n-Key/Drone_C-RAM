@@ -48,6 +48,7 @@ Inspired by C-RAM/CIWS systems, an embedded systems semester-long team project w
 - Turret holds acceptable accuracy and is fast with good ML model
 - Hard stop switches too sensitive, vibration from firing causes them to trip, recalibrating turret mid firing.
 - Initial field test, 2 confirmed hits on drone.
+- Second tests, C-RAM tracking incredibly well running around it ~25ft away. Discovered that it will lock onto people's shadows if the silhouette is human enough.
 
 # Challenges & Solutions
 
